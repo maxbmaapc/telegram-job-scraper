@@ -16,6 +16,7 @@ from .config import config
 from .telegram_client import TelegramJobClient, MessageMonitor
 from .filters import MessageFilter, AdvancedFilter
 from .output import OutputManager, DatabaseManager
+from .scheduler import JobScheduler, create_scheduler_from_config
 from .utils import calculate_message_stats, safe_json_dump
 
 logger = logging.getLogger(__name__)
@@ -139,6 +140,31 @@ class JobScraper:
         # Start monitoring
         await monitor.start_monitoring()
     
+    async def run_scheduled_scraping(self):
+        """Run scheduled scraping at specified intervals"""
+        logger.info("Starting scheduled scraping")
+        
+        # Create scheduler
+        scheduler = create_scheduler_from_config(
+            interval_minutes=config.schedule_interval_minutes,
+            start_time=config.schedule_start_time,
+            end_time=config.schedule_end_time,
+            days_of_week=config.schedule_days_of_week,
+            max_runs_per_day=config.schedule_max_runs_per_day
+        )
+        
+        # Define the job function
+        async def scheduled_job():
+            """Job function to run on schedule"""
+            try:
+                jobs = await self.scrape_jobs(limit=100)
+                await self.output_jobs(jobs)
+            except Exception as e:
+                logger.error(f"Error in scheduled job: {e}")
+        
+        # Start the scheduler
+        await scheduler.run_scheduled(scheduled_job)
+    
     async def cleanup(self):
         """Cleanup resources"""
         if self.telegram_client:
@@ -148,8 +174,8 @@ class JobScraper:
 async def main():
     """Main entry point"""
     parser = argparse.ArgumentParser(description='Telegram Job Scraper')
-    parser.add_argument('--mode', choices=['single', 'continuous'], default='single',
-                       help='Scraping mode: single run or continuous monitoring')
+    parser.add_argument('--mode', choices=['single', 'continuous', 'scheduled'], default='single',
+                       help='Scraping mode: single run, continuous monitoring, or scheduled (default: single)')
     parser.add_argument('--limit', type=int, default=100,
                        help='Number of messages to retrieve per channel')
     parser.add_argument('--config', type=str,
@@ -171,6 +197,8 @@ async def main():
             await scraper.run_single_scrape(args.limit)
         elif args.mode == 'continuous':
             await scraper.run_continuous_monitoring()
+        elif args.mode == 'scheduled':
+            await scraper.run_scheduled_scraping()
         
     except KeyboardInterrupt:
         logger.info("Received interrupt signal, shutting down...")

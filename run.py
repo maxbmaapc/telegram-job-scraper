@@ -24,16 +24,27 @@ def main():
 Examples:
   python run.py                    # Run single scrape with default settings
   python run.py --mode continuous  # Run continuous monitoring
+  python run.py --mode scheduled   # Run scheduled scraping (every 30 min by default)
   python run.py --limit 50         # Scrape 50 messages per channel
   python run.py --help             # Show this help message
+
+Scheduling Examples:
+  # Run every 15 minutes during business hours
+  SCHEDULE_INTERVAL_MINUTES=15 SCHEDULE_START_TIME=09:00 SCHEDULE_END_TIME=18:00 python run.py --mode scheduled
+  
+  # Run every hour, weekdays only
+  SCHEDULE_INTERVAL_MINUTES=60 SCHEDULE_DAYS_OF_WEEK=0,1,2,3,4 python run.py --mode scheduled
+  
+  # Run every 30 minutes, max 5 times per day
+  SCHEDULE_INTERVAL_MINUTES=30 SCHEDULE_MAX_RUNS_PER_DAY=5 python run.py --mode scheduled
         """
     )
     
     parser.add_argument(
         '--mode',
-        choices=['single', 'continuous'],
+        choices=['single', 'continuous', 'scheduled'],
         default='single',
-        help='Scraping mode: single run or continuous monitoring (default: single)'
+        help='Scraping mode: single run, continuous monitoring, or scheduled (default: single)'
     )
     
     parser.add_argument(

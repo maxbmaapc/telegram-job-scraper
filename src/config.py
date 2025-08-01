@@ -39,6 +39,13 @@ class Config:
         # Session file
         self.session_name = 'telegram_job_scraper'
         
+        # Scheduling Settings
+        self.schedule_interval_minutes = int(os.getenv('SCHEDULE_INTERVAL_MINUTES', '30'))
+        self.schedule_start_time = os.getenv('SCHEDULE_START_TIME', None)  # e.g., "09:00"
+        self.schedule_end_time = os.getenv('SCHEDULE_END_TIME', None)      # e.g., "18:00"
+        self.schedule_days_of_week = self._parse_days_of_week(os.getenv('SCHEDULE_DAYS_OF_WEEK', '0,1,2,3,4,5,6'))
+        self.schedule_max_runs_per_day = int(os.getenv('SCHEDULE_MAX_RUNS_PER_DAY', '0')) or None
+        
         # Setup logging
         self._setup_logging()
     
@@ -55,6 +62,13 @@ class Config:
         if not value:
             return []
         return [item.strip() for item in value.split(',') if item.strip()]
+    
+    def _parse_days_of_week(self, value: str) -> List[int]:
+        """Parse days of week string into list of integers"""
+        try:
+            return [int(day.strip()) for day in value.split(',') if day.strip()]
+        except ValueError:
+            return [0, 1, 2, 3, 4, 5, 6]  # Default to all days
     
     def _setup_logging(self):
         """Setup logging configuration"""

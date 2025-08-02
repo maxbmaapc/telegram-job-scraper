@@ -1,12 +1,5 @@
 telethon==1.34.0
 python-dotenv==1.0.0
-asyncio
-sqlite3
-logging
-json
-csv
-datetime
-re
 pytest==7.4.3
 flask==3.0.0
 flask-cors==4.0.0

@@ -31,7 +31,13 @@ class MessageFilter:
         if self.date_filter_hours <= 0:
             return True  # No date filter
             
-        cutoff_time = datetime.now() - timedelta(hours=self.date_filter_hours)
+        # Ensure both dates are timezone-aware or timezone-naive
+        if message_date.tzinfo is None:
+            # Make message_date timezone-aware
+            from datetime import timezone
+            message_date = message_date.replace(tzinfo=timezone.utc)
+            
+        cutoff_time = datetime.now(message_date.tzinfo) - timedelta(hours=self.date_filter_hours)
         return message_date >= cutoff_time
     
     def filter_message(self, message: Dict[str, Any]) -> bool:

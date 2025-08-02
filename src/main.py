@@ -14,7 +14,7 @@ from typing import List, Dict, Any
 
 from .config import config
 from .telegram_client import TelegramJobClient, MessageMonitor
-from .filters import MessageFilter, AdvancedFilter
+from .filters import MessageFilter, AdvancedFilter, RussianJobFilter
 from .output import OutputManager, DatabaseManager
 from .scheduler import JobScheduler, create_scheduler_from_config
 from .utils import calculate_message_stats, safe_json_dump
@@ -42,8 +42,8 @@ class JobScraper:
             self.telegram_client = TelegramJobClient()
             await self.telegram_client.start()
             
-            # Initialize message filter
-            self.message_filter = MessageFilter(
+            # Initialize message filter (use Russian filter for better Russian job handling)
+            self.message_filter = RussianJobFilter(
                 keywords=config.filter_keywords,
                 date_filter_hours=config.date_filter_hours
             )
@@ -52,6 +52,8 @@ class JobScraper:
             self.output_manager = OutputManager(config.output_method)
             if config.output_method == 'telegram':
                 self.output_manager.set_telegram_client(self.telegram_client)
+                # Pass message filter for enhanced formatting
+                self.output_manager.message_filter = self.message_filter
             
             # Initialize database manager
             self.database_manager = DatabaseManager()

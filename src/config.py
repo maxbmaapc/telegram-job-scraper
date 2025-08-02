@@ -31,6 +31,10 @@ class Config:
         self.output_method = os.getenv('OUTPUT_METHOD', 'telegram').lower()
         self.send_to_self = os.getenv('SEND_TO_SELF', 'false').lower() == 'true'  # Changed default to false
         
+        # Rate Limiting Settings (to avoid Telegram bans)
+        self.message_delay_min = float(os.getenv('MESSAGE_DELAY_MIN', '2.0'))  # Minimum delay between messages
+        self.message_delay_max = float(os.getenv('MESSAGE_DELAY_MAX', '3.0'))  # Maximum delay between messages
+        
         # Database Settings
         self.database_path = os.getenv('DATABASE_PATH', 'jobs.db')
         

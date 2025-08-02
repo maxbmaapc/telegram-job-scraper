@@ -47,26 +47,88 @@ class OutputManager:
         
         for job in jobs:
             try:
-                message = self._format_job_message(job)
-                
-                # Determine where to send the message
-                if config.send_to_self:
-                    # Send to self (original behavior)
-                    await self.telegram_client.send_message_to_self(message)
-                else:
-                    # Send to target entity
-                    target_entity = config.get_target_entity()
-                    if target_entity:
-                        await self.telegram_client.send_message_to_target(message, target_entity)
+                # Try to forward the original message first
+                if await self._forward_original_message(job):
+                    # If forwarding succeeded, send a brief summary
+                    summary = self._format_job_summary(job)
+                    if config.send_to_self:
+                        await self.telegram_client.send_message_to_self(summary)
                     else:
-                        logger.error('No target entity configured for sending messages')
-                        return
+                        target_entity = config.get_target_entity()
+                        if target_entity:
+                            await self.telegram_client.send_message_to_target(summary, target_entity)
+                else:
+                    # If forwarding failed, send the full formatted message
+                    message = self._format_job_message(job)
+                    if config.send_to_self:
+                        await self.telegram_client.send_message_to_self(message)
+                    else:
+                        target_entity = config.get_target_entity()
+                        if target_entity:
+                            await self.telegram_client.send_message_to_target(message, target_entity)
                 
-                # Add delay to avoid rate limiting
-                await asyncio.sleep(1)
+                # Add delay to avoid rate limiting (Telegram has strict limits)
+                # Use configurable delay to be safe and avoid bans
+                import random
+                delay = random.uniform(config.message_delay_min, config.message_delay_max)
+                logger.debug(f'Waiting {delay:.1f}s before next message to avoid rate limiting')
+                await asyncio.sleep(delay)
                 
             except Exception as e:
                 logger.error(f'Failed to send job to Telegram: {e}')
+    
+    async def _forward_original_message(self, job: Dict[str, Any]) -> bool:
+        """Try to forward the original message"""
+        try:
+            # Get the original message from the channel
+            original_message = await self.telegram_client.client.get_messages(
+                job['chat_id'], 
+                ids=job['id']
+            )
+            
+            if original_message:
+                # Forward the message to target
+                if config.send_to_self:
+                    await original_message.forward_to(self.telegram_client.me)
+                else:
+                    target_entity = config.get_target_entity()
+                    if target_entity:
+                        entity = await self.telegram_client._resolve_target_entity(target_entity)
+                        if entity:
+                            await original_message.forward_to(entity)
+                            return True
+                
+                return True
+        except Exception as e:
+            logger.debug(f'Could not forward message: {e}')
+            return False
+        
+        return False
+    
+    def _format_job_summary(self, job: Dict[str, Any]) -> str:
+        """Format a brief summary for forwarded messages"""
+        message = f"🔍 **Job Posting Forwarded**\n\n"
+        
+        # Add experience info if available
+        if hasattr(self, 'message_filter') and hasattr(self.message_filter, 'get_experience_info'):
+            text = job.get('message', '')
+            experience_info = self.message_filter.get_experience_info(text)
+            if experience_info:
+                if experience_info.get('is_junior'):
+                    message += f"👶 **Level:** Junior/Entry Level\n"
+                elif experience_info.get('experience_years'):
+                    message += f"⏰ **Experience:** {experience_info['experience_years']} years\n"
+                
+                # Add remote work info
+                if experience_info.get('is_remote'):
+                    message += f"🏠 **Work Type:** Remote\n"
+        
+        message += f"📢 **Channel:** {job['chat_title']}"
+        
+        if job.get('matched_keywords'):
+            message += f"\n🏷️ **Keywords:** {', '.join(job['matched_keywords'])}"
+        
+        return message
     
     def _output_to_file(self, jobs: List[Dict[str, Any]]):
         """Save jobs to file (JSON or CSV)"""
@@ -134,8 +196,26 @@ class OutputManager:
     def _format_job_message(self, job: Dict[str, Any]) -> str:
         """Format a job posting for Telegram"""
         message = f"🔍 **Job Posting Found!**\n\n"
-        message += f"📝 **Message:**\n{job['message'][:500]}"
-        if len(job['message']) > 500:
+        
+        # Add experience info if available
+        if hasattr(self, 'message_filter') and hasattr(self.message_filter, 'get_experience_info'):
+            text = job.get('message', '')
+            experience_info = self.message_filter.get_experience_info(text)
+            if experience_info:
+                if experience_info.get('is_junior'):
+                    message += f"👶 **Level:** Junior/Entry Level\n"
+                elif experience_info.get('experience_years'):
+                    message += f"⏰ **Experience:** {experience_info['experience_years']} years\n"
+                else:
+                    message += f"⏰ **Experience:** Not specified\n"
+                
+                # Add remote work info
+                if experience_info.get('is_remote'):
+                    message += f"🏠 **Work Type:** Remote\n"
+        
+        # Add message preview
+        message += f"📝 **Preview:**\n{job['message'][:300]}"
+        if len(job['message']) > 300:
             message += "..."
         
         message += f"\n\n📅 **Date:** {job['date']}"
@@ -143,6 +223,18 @@ class OutputManager:
         
         if job.get('matched_keywords'):
             message += f"\n🏷️ **Matched Keywords:** {', '.join(job['matched_keywords'])}"
+        
+        # Add link to original message if possible
+        if job.get('chat_id') and job.get('id'):
+            # Try to create a link to the original message
+            try:
+                # For public channels, we can create a link
+                if str(job['chat_id']).startswith('-100'):
+                    channel_id = str(job['chat_id'])[4:]  # Remove -100 prefix
+                    message_link = f"https://t.me/c/{channel_id}/{job['id']}"
+                    message += f"\n🔗 **Original Post:** {message_link}"
+            except:
+                pass
         
         if job.get('views'):
             message += f"\n👁️ **Views:** {job['views']}"

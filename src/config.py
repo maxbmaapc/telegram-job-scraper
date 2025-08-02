@@ -18,13 +18,18 @@ class Config:
         # Target Channels
         self.target_channels = self._parse_list_env('TARGET_CHANNELS')
         
+        # Target Personal Account (where to send messages)
+        self.target_user_id = os.getenv('TARGET_USER_ID')
+        self.target_username = os.getenv('TARGET_USERNAME')
+        self.target_phone_number = os.getenv('TARGET_PHONE_NUMBER')
+        
         # Filter Settings
         self.filter_keywords = self._parse_list_env('FILTER_KEYWORDS')
         self.date_filter_hours = int(os.getenv('DATE_FILTER_HOURS', '24'))
         
         # Output Settings
         self.output_method = os.getenv('OUTPUT_METHOD', 'telegram').lower()
-        self.send_to_self = os.getenv('SEND_TO_SELF', 'true').lower() == 'true'
+        self.send_to_self = os.getenv('SEND_TO_SELF', 'false').lower() == 'true'  # Changed default to false
         
         # Database Settings
         self.database_path = os.getenv('DATABASE_PATH', 'jobs.db')
@@ -81,6 +86,16 @@ class Config:
             ]
         )
     
+    def get_target_entity(self) -> Optional[str]:
+        """Get the target entity for sending messages"""
+        if self.target_user_id:
+            return self.target_user_id
+        elif self.target_username:
+            return self.target_username
+        elif self.target_phone_number:
+            return self.target_phone_number
+        return None
+    
     def validate(self) -> bool:
         """Validate configuration"""
         if not self.target_channels:
@@ -90,6 +105,12 @@ class Config:
         if not self.filter_keywords:
             logging.warning('No filter keywords configured')
             return False
+        
+        # Validate target entity for sending messages
+        if self.output_method == 'telegram' and not self.send_to_self:
+            if not self.get_target_entity():
+                logging.error('No target entity configured for sending messages. Set TARGET_USER_ID, TARGET_USERNAME, or TARGET_PHONE_NUMBER')
+                return False
         
         return True
 

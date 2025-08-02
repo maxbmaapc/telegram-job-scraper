@@ -45,22 +45,26 @@ telegram-job-scraper/
 ### Installation
 
 1. **Clone the repository**
+
    ```bash
    git clone https://github.com/maxbmaapc/telegram-job-scraper.git
    cd telegram-job-scraper
    ```
 
 2. **Install dependencies**
+
    ```bash
    pip install -r requirements.txt
    ```
 
 3. **Get Telegram API credentials**
+
    - Go to https://my.telegram.org/apps
    - Create a new application
    - Note your API ID and API Hash
 
 4. **Configure environment variables**
+
    ```bash
    cp .env.example .env
    # Edit .env with your credentials and settings
@@ -91,7 +95,12 @@ DATE_FILTER_HOURS=24
 
 # Output Settings
 OUTPUT_METHOD=telegram  # Options: telegram, file, database
-SEND_TO_SELF=true
+SEND_TO_SELF=true  # Set to false to send to target account instead
+
+# Target Personal Account (where to send messages when SEND_TO_SELF=false)
+# TARGET_USER_ID=123456789  # Your personal Telegram user ID
+# TARGET_USERNAME=your_username  # Your personal Telegram username (without @)
+# TARGET_PHONE_NUMBER=+1234567890  # Your personal phone number
 
 # Database Settings (if using database output)
 DATABASE_PATH=jobs.db
@@ -135,16 +144,19 @@ python web/app.py
 The scraper uses the following filtering criteria:
 
 ### Keywords
+
 - Case-insensitive matching
 - Supports multiple keywords
 - Configurable via environment variables
 
 ### Date Filtering
+
 - Filters messages by timestamp
 - Configurable time window (hours/days)
 - Default: last 24 hours
 
 ### Future Extensions
+
 - Location-based filtering
 - Salary range filtering
 - Tech stack matching
@@ -152,17 +164,21 @@ The scraper uses the following filtering criteria:
 
 ## Output Methods
 
-### 1. Telegram (Send to Self)
-- Sends filtered job posts to your own Telegram chat
+### 1. Telegram (Send to Self or Target Account)
+
+- Sends filtered job posts to your own Telegram chat or a target account
 - Real-time notifications
 - Easy to read on mobile
+- **New**: Can send to a different personal account (see [SETUP_TARGET_ACCOUNT.md](SETUP_TARGET_ACCOUNT.md))
 
 ### 2. File Output
+
 - Saves to JSON or CSV format
 - Structured data for analysis
 - Easy to import into other tools
 
 ### 3. Database Storage
+
 - SQLite database for local storage
 - Structured queries and filtering
 - Data persistence across runs
@@ -210,15 +226,17 @@ This tool is for educational and personal use only. Please respect Telegram's te
 ### Example 1: Basic Setup
 
 1. **Set up your environment**:
+
    ```bash
    # Copy environment template
    cp .env.example .env
-   
+
    # Edit with your credentials
    nano .env
    ```
 
 2. **Run a single scrape**:
+
    ```bash
    python src/main.py --mode single --limit 50
    ```
@@ -251,11 +269,13 @@ open http://localhost:5000
 ### Common Issues
 
 1. **Authentication Error**
+
    - Ensure your API credentials are correct
    - Check that your phone number is in international format
    - Disable 2FA temporarily if needed
 
 2. **No Messages Found**
+
    - Verify channel IDs are correct
    - Check that you have access to the channels
    - Adjust keyword filters if too restrictive
@@ -274,6 +294,7 @@ open http://localhost:5000
 ### Logs
 
 Check the log file `telegram_scraper.log` for detailed information about:
+
 - Connection status
 - Message processing
 - Filtering results
@@ -309,8 +330,8 @@ cursor = conn.cursor()
 
 # Get all jobs with 'python' keyword
 cursor.execute("""
-    SELECT * FROM jobs 
-    WHERE message LIKE '%python%' 
+    SELECT * FROM jobs
+    WHERE message LIKE '%python%'
     ORDER BY created_at DESC
 """)
 

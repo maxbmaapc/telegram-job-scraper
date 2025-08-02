@@ -48,7 +48,19 @@ class OutputManager:
         for job in jobs:
             try:
                 message = self._format_job_message(job)
-                await self.telegram_client.send_message_to_self(message)
+                
+                # Determine where to send the message
+                if config.send_to_self:
+                    # Send to self (original behavior)
+                    await self.telegram_client.send_message_to_self(message)
+                else:
+                    # Send to target entity
+                    target_entity = config.get_target_entity()
+                    if target_entity:
+                        await self.telegram_client.send_message_to_target(message, target_entity)
+                    else:
+                        logger.error('No target entity configured for sending messages')
+                        return
                 
                 # Add delay to avoid rate limiting
                 await asyncio.sleep(1)

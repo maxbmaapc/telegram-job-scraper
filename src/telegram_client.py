@@ -95,6 +95,43 @@ class TelegramJobClient:
         except Exception as e:
             logger.error(f'Failed to send message to self: {e}')
     
+    async def send_message_to_target(self, text: str, target_entity: str):
+        """Send a message to a target entity (user, channel, or group)"""
+        try:
+            # Try to resolve the target entity
+            entity = await self._resolve_target_entity(target_entity)
+            if entity:
+                await self.client.send_message(entity, text)
+                logger.info(f'Message sent to target: {getattr(entity, "title", getattr(entity, "first_name", "Unknown"))}')
+            else:
+                logger.error(f'Could not resolve target entity: {target_entity}')
+        except Exception as e:
+            logger.error(f'Failed to send message to target {target_entity}: {e}')
+    
+    async def _resolve_target_entity(self, target_entity: str):
+        """Resolve a target entity from various formats"""
+        try:
+            # Try as user ID
+            if target_entity.isdigit():
+                return await self.client.get_entity(int(target_entity))
+            
+            # Try as username (with or without @)
+            if target_entity.startswith('@'):
+                target_entity = target_entity[1:]
+            return await self.client.get_entity(target_entity)
+            
+        except ValueError:
+            # Try as phone number
+            try:
+                return await self.client.get_entity(target_entity)
+            except:
+                pass
+        
+        except Exception as e:
+            logger.error(f'Failed to resolve target entity {target_entity}: {e}')
+        
+        return None
+    
     async def get_entity_info(self, entity_id: str) -> Optional[Dict[str, Any]]:
         """Get information about an entity"""
         try:

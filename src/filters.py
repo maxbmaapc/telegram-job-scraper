@@ -2,8 +2,12 @@ import re
 from datetime import datetime, timedelta
 from typing import List, Dict, Any, Optional
 import logging
+from decimal import Decimal
 
-logger = logging.getLogger(__name__)
+from .salary_extractor import salary_extractor, extract_salary_from_text
+from .logging_config import get_logger
+
+logger = get_logger(__name__)
 
 class RussianJobFilter:
     """Advanced filter for Russian job postings with specific requirements"""
@@ -244,6 +248,65 @@ class RussianJobFilter:
             'is_remote': remote_found,
             'meets_requirements': (junior_found or (experience_years is not None and experience_years <= 2)) and remote_found
         }
+    
+    def get_salary_info(self, text: str) -> Dict[str, Any]:
+        """Extract salary information from text using enhanced salary extraction"""
+        if not text:
+            return {}
+        
+        try:
+            salaries = salary_extractor.extract_salaries(text)
+            
+            if not salaries:
+                return {'salaries_found': False}
+            
+            # Convert to dictionaries
+            salary_data = [salary.to_dict() for salary in salaries]
+            
+            # Get the primary salary (first one found)
+            primary_salary = salary_data[0] if salary_data else None
+            
+            return {
+                'salaries_found': True,
+                'salary_count': len(salary_data),
+                'primary_salary': primary_salary,
+                'all_salaries': salary_data
+            }
+            
+        except Exception as e:
+            logger.error(f"Error extracting salary info: {e}")
+            return {'salaries_found': False, 'error': str(e)}
+    
+    def get_job_analysis(self, text: str) -> Dict[str, Any]:
+        """Comprehensive job analysis including experience and salary information"""
+        if not text:
+            return {}
+        
+        experience_info = self.get_experience_info(text)
+        salary_info = self.get_salary_info(text)
+        
+        return {
+            'experience': experience_info,
+            'salary': salary_info,
+            'matched_keywords': self.get_matched_keywords(text),
+            'excluded_keywords': self._get_excluded_keywords(text),
+            'remote_work_mentioned': experience_info.get('is_remote', False),
+            'junior_position': experience_info.get('is_junior', False)
+        }
+    
+    def _get_excluded_keywords(self, text: str) -> List[str]:
+        """Get list of exclude keywords found in text"""
+        if not text:
+            return []
+            
+        text_lower = text.lower()
+        found = []
+        
+        for exclude_keyword in self.exclude_keywords:
+            if exclude_keyword in text_lower:
+                found.append(exclude_keyword)
+        
+        return found
 
 class MessageFilter:
     """Legacy filter class for backward compatibility"""
@@ -375,30 +438,44 @@ class AdvancedFilter(MessageFilter):
         return True
     
     def _matches_salary_range(self, text: str) -> bool:
-        """Check if message contains salary within specified range"""
-        # Simple salary extraction (can be enhanced)
-        salary_patterns = [
-            r'£(\d{1,3}(?:,\d{3})*(?:\s*k)?)',  # £50k, £50,000
-            r'\$(\d{1,3}(?:,\d{3})*(?:\s*k)?)',  # $50k, $50,000
-            r'(\d{1,3}(?:,\d{3})*(?:\s*k)?)\s*(?:pounds?|gbp)',  # 50k pounds
-        ]
+        """Check if message contains salary within specified range using enhanced salary extraction"""
+        if not (self.min_salary or self.max_salary):
+            return True  # No salary filter, pass all
         
-        for pattern in salary_patterns:
-            matches = re.findall(pattern, text, re.IGNORECASE)
-            for match in matches:
-                try:
-                    # Convert to number
-                    salary_str = match.replace(',', '').replace('k', '000')
-                    salary = int(salary_str)
-                    
-                    # Check range
-                    if self.min_salary and salary < self.min_salary:
+        try:
+            # Extract salaries using the enhanced salary extractor
+            salaries = salary_extractor.extract_salaries(text)
+            
+            if not salaries:
+                logger.debug("No salary found in text")
+                return False
+            
+            # Check each extracted salary
+            for salary in salaries:
+                # Normalize to yearly for comparison
+                yearly_salary = salary_extractor.normalize_to_yearly(salary)
+                
+                # Convert to target currency if needed (simplified)
+                if yearly_salary.currency != 'USD':
+                    # For now, assume USD as target currency
+                    # In production, implement proper currency conversion
+                    pass
+                
+                # Check if salary meets criteria
+                if self.min_salary:
+                    if yearly_salary.max_amount and yearly_salary.max_amount < Decimal(str(self.min_salary)):
                         continue
-                    if self.max_salary and salary > self.max_salary:
+                
+                if self.max_salary:
+                    if yearly_salary.min_amount and yearly_salary.min_amount > Decimal(str(self.max_salary)):
                         continue
-                    
-                    return True
-                except ValueError:
-                    continue
-        
-        return not (self.min_salary or self.max_salary)  # If no salary filter, pass
+                
+                logger.debug(f"Salary {yearly_salary} matches criteria")
+                return True
+            
+            logger.debug("No salary matches the specified range")
+            return False
+            
+        except Exception as e:
+            logger.error(f"Error checking salary range: {e}")
+            return False  # Fail safe - don't exclude on error

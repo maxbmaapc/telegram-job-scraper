@@ -1,194 +1,273 @@
 """
-Centralized logging configuration for Telegram Job Scraper.
+Centralized logging configuration for the Telegram Job Scraper.
 
-This module provides structured logging configuration with:
-- Different log levels for different environments
-- Structured log formatting with timestamps and context
-- File and console handlers
-- Rotating file handlers for production
-- Error tracking and monitoring capabilities
+This module provides structured logging configuration with different handlers
+for console, file, and optional external services.
 """
 
 import logging
 import logging.handlers
 import os
 import sys
-from datetime import datetime
 from pathlib import Path
-from typing import Optional
+from typing import Optional, Dict, Any
+import json
+from datetime import datetime
 
-# Custom log levels
-VERBOSE = 15
-logging.addLevelName(VERBOSE, "VERBOSE")
+class StructuredFormatter(logging.Formatter):
+    """Custom formatter that outputs structured JSON logs for better parsing."""
+    
+    def format(self, record: logging.LogRecord) -> str:
+        """Format log record as structured JSON."""
+        log_entry = {
+            'timestamp': datetime.fromtimestamp(record.created).isoformat(),
+            'level': record.levelname,
+            'logger': record.name,
+            'message': record.getMessage(),
+            'module': record.module,
+            'function': record.funcName,
+            'line': record.lineno
+        }
+        
+        # Add exception info if present
+        if record.exc_info:
+            log_entry['exception'] = self.formatException(record.exc_info)
+        
+        # Add extra fields if present
+        if hasattr(record, 'extra_fields'):
+            log_entry.update(record.extra_fields)
+        
+        return json.dumps(log_entry, ensure_ascii=False)
+
+class ColoredFormatter(logging.Formatter):
+    """Custom formatter with colored output for console."""
+    
+    COLORS = {
+        'DEBUG': '\033[36m',    # Cyan
+        'INFO': '\033[32m',     # Green
+        'WARNING': '\033[33m',  # Yellow
+        'ERROR': '\033[31m',    # Red
+        'CRITICAL': '\033[35m', # Magenta
+        'RESET': '\033[0m'      # Reset
+    }
+    
+    def format(self, record: logging.LogRecord) -> str:
+        """Format log record with colors."""
+        color = self.COLORS.get(record.levelname, self.COLORS['RESET'])
+        reset = self.COLORS['RESET']
+        
+        # Format the message
+        formatted = super().format(record)
+        
+        # Add color to level name
+        formatted = formatted.replace(
+            record.levelname,
+            f"{color}{record.levelname}{reset}"
+        )
+        
+        return formatted
 
 def setup_logging(
     log_level: str = "INFO",
     log_file: Optional[str] = None,
+    log_dir: str = "logs",
+    max_file_size: int = 10 * 1024 * 1024,  # 10MB
+    backup_count: int = 5,
     enable_console: bool = True,
     enable_file: bool = True,
-    max_file_size: int = 10 * 1024 * 1024,  # 10MB
-    backup_count: int = 5
+    enable_json: bool = False,
+    enable_colors: bool = True
 ) -> logging.Logger:
     """
-    Setup centralized logging configuration.
+    Setup comprehensive logging configuration.
     
     Args:
         log_level: Logging level (DEBUG, INFO, WARNING, ERROR, CRITICAL)
-        log_file: Path to log file (optional)
+        log_file: Log file path (relative to log_dir)
+        log_dir: Directory for log files
+        max_file_size: Maximum size of log files before rotation
+        backup_count: Number of backup files to keep
         enable_console: Enable console logging
         enable_file: Enable file logging
-        max_file_size: Maximum size of log file before rotation
-        backup_count: Number of backup files to keep
-        
-    Returns:
-        Configured logger instance
-    """
+        enable_json: Enable JSON structured logging
+        enable_colors: Enable colored console output
     
-    # Create logs directory if it doesn't exist
-    if log_file:
-        log_path = Path(log_file)
-        log_path.parent.mkdir(parents=True, exist_ok=True)
+    Returns:
+        Configured root logger
+    """
+    # Create log directory if it doesn't exist
+    if enable_file:
+        log_path = Path(log_dir)
+        log_path.mkdir(exist_ok=True)
     
     # Get root logger
     logger = logging.getLogger()
-    logger.setLevel(getattr(logging, log_level.upper(), logging.INFO))
+    logger.setLevel(getattr(logging, log_level.upper()))
     
     # Clear existing handlers
     logger.handlers.clear()
     
-    # Create formatters
-    detailed_formatter = logging.Formatter(
-        fmt='%(asctime)s - %(name)s - %(levelname)s - %(funcName)s:%(lineno)d - %(message)s',
-        datefmt='%Y-%m-%d %H:%M:%S'
-    )
-    
-    simple_formatter = logging.Formatter(
-        fmt='%(asctime)s - %(name)s - %(levelname)s - %(message)s',
-        datefmt='%H:%M:%S'
-    )
-    
     # Console handler
     if enable_console:
         console_handler = logging.StreamHandler(sys.stdout)
-        console_handler.setLevel(logging.INFO)
-        console_handler.setFormatter(simple_formatter)
+        console_handler.setLevel(getattr(logging, log_level.upper()))
+        
+        if enable_colors and not enable_json:
+            formatter = ColoredFormatter(
+                '%(asctime)s - %(name)s - %(levelname)s - %(message)s'
+            )
+        elif enable_json:
+            formatter = StructuredFormatter()
+        else:
+            formatter = logging.Formatter(
+                '%(asctime)s - %(name)s - %(levelname)s - %(message)s'
+            )
+        
+        console_handler.setFormatter(formatter)
         logger.addHandler(console_handler)
     
-    # File handler with rotation
-    if enable_file and log_file:
+    # File handler
+    if enable_file:
+        if not log_file:
+            log_file = f"telegram_scraper_{datetime.now().strftime('%Y%m%d')}.log"
+        
+        file_path = Path(log_dir) / log_file
+        
+        # Use rotating file handler for better log management
         file_handler = logging.handlers.RotatingFileHandler(
-            log_file,
+            file_path,
             maxBytes=max_file_size,
             backupCount=backup_count,
             encoding='utf-8'
         )
-        file_handler.setLevel(logging.DEBUG)
-        file_handler.setFormatter(detailed_formatter)
+        file_handler.setLevel(getattr(logging, log_level.upper()))
+        
+        if enable_json:
+            formatter = StructuredFormatter()
+        else:
+            formatter = logging.Formatter(
+                '%(asctime)s - %(name)s - %(levelname)s - %(funcName)s:%(lineno)d - %(message)s'
+            )
+        
+        file_handler.setFormatter(formatter)
         logger.addHandler(file_handler)
     
-    # Error file handler (separate file for errors only)
-    if enable_file and log_file:
-        error_log_file = str(Path(log_file).with_suffix('.error.log'))
-        error_handler = logging.handlers.RotatingFileHandler(
-            error_log_file,
-            maxBytes=max_file_size,
-            backupCount=backup_count,
-            encoding='utf-8'
-        )
-        error_handler.setLevel(logging.ERROR)
-        error_handler.setFormatter(detailed_formatter)
-        logger.addHandler(error_handler)
+    # Add custom logger for the application
+    app_logger = logging.getLogger('telegram_scraper')
+    app_logger.setLevel(getattr(logging, log_level.upper()))
     
-    return logger
+    return app_logger
 
 def get_logger(name: str) -> logging.Logger:
     """
-    Get a logger instance with the specified name.
+    Get a logger instance with the given name.
     
     Args:
         name: Logger name (usually __name__)
-        
+    
     Returns:
-        Logger instance
+        Configured logger instance
     """
     return logging.getLogger(name)
 
-class StructuredLogger:
+def log_function_call(logger: logging.Logger):
     """
-    Structured logger with context and additional metadata.
+    Decorator to log function calls with parameters and return values.
+    
+    Args:
+        logger: Logger instance to use
     """
-    
-    def __init__(self, name: str):
-        self.logger = logging.getLogger(name)
-        self.context = {}
-    
-    def bind(self, **kwargs) -> 'StructuredLogger':
-        """Bind context data to the logger."""
-        new_logger = StructuredLogger(self.logger.name)
-        new_logger.context = {**self.context, **kwargs}
-        return new_logger
-    
-    def _format_message(self, message: str) -> str:
-        """Format message with context."""
-        if self.context:
-            context_str = " | ".join(f"{k}={v}" for k, v in self.context.items())
-            return f"{message} | {context_str}"
-        return message
-    
-    def debug(self, message: str, **kwargs):
-        """Log debug message with context."""
-        self.logger.debug(self._format_message(message), extra=kwargs)
-    
-    def info(self, message: str, **kwargs):
-        """Log info message with context."""
-        self.logger.info(self._format_message(message), extra=kwargs)
-    
-    def warning(self, message: str, **kwargs):
-        """Log warning message with context."""
-        self.logger.warning(self._format_message(message), extra=kwargs)
-    
-    def error(self, message: str, **kwargs):
-        """Log error message with context."""
-        self.logger.error(self._format_message(message), extra=kwargs)
-    
-    def critical(self, message: str, **kwargs):
-        """Log critical message with context."""
-        self.logger.critical(self._format_message(message), extra=kwargs)
-    
-    def exception(self, message: str, **kwargs):
-        """Log exception with traceback."""
-        self.logger.exception(self._format_message(message), extra=kwargs)
+    def decorator(func):
+        def wrapper(*args, **kwargs):
+            # Log function entry
+            logger.debug(f"Entering {func.__name__} with args={args}, kwargs={kwargs}")
+            
+            try:
+                result = func(*args, **kwargs)
+                logger.debug(f"Exiting {func.__name__} with result={result}")
+                return result
+            except Exception as e:
+                logger.error(f"Exception in {func.__name__}: {e}", exc_info=True)
+                raise
+        
+        return wrapper
+    return decorator
 
-# Performance monitoring
-class PerformanceLogger:
-    """Logger for performance metrics and timing."""
+def log_performance(logger: logging.Logger):
+    """
+    Decorator to log function performance metrics.
     
-    def __init__(self, name: str):
-        self.logger = logging.getLogger(f"{name}.performance")
+    Args:
+        logger: Logger instance to use
+    """
+    def decorator(func):
+        def wrapper(*args, **kwargs):
+            import time
+            start_time = time.time()
+            
+            try:
+                result = func(*args, **kwargs)
+                execution_time = time.time() - start_time
+                logger.info(f"{func.__name__} executed in {execution_time:.4f} seconds")
+                return result
+            except Exception as e:
+                execution_time = time.time() - start_time
+                logger.error(f"{func.__name__} failed after {execution_time:.4f} seconds: {e}")
+                raise
+        
+        return wrapper
+    return decorator
+
+class ErrorTracker:
+    """Track and report errors with context."""
     
-    def log_timing(self, operation: str, duration: float, **kwargs):
-        """Log operation timing."""
-        self.logger.info(
-            f"Performance: {operation} took {duration:.3f}s",
-            extra={"operation": operation, "duration": duration, **kwargs}
+    def __init__(self, logger: logging.Logger):
+        self.logger = logger
+        self.error_count = 0
+        self.error_types = {}
+    
+    def track_error(self, error: Exception, context: Optional[Dict[str, Any]] = None):
+        """
+        Track an error with optional context.
+        
+        Args:
+            error: The exception that occurred
+            context: Optional context dictionary
+        """
+        self.error_count += 1
+        error_type = type(error).__name__
+        self.error_types[error_type] = self.error_types.get(error_type, 0) + 1
+        
+        # Log the error with context
+        extra_fields = {
+            'error_type': error_type,
+            'error_count': self.error_count,
+            'context': context or {}
+        }
+        
+        self.logger.error(
+            f"Error #{self.error_count} ({error_type}): {str(error)}",
+            extra={'extra_fields': extra_fields},
+            exc_info=True
         )
     
-    def log_memory_usage(self, memory_mb: float, **kwargs):
-        """Log memory usage."""
-        self.logger.info(
-            f"Memory usage: {memory_mb:.2f}MB",
-            extra={"memory_mb": memory_mb, **kwargs}
-        )
+    def get_error_summary(self) -> Dict[str, Any]:
+        """Get a summary of tracked errors."""
+        return {
+            'total_errors': self.error_count,
+            'error_types': self.error_types.copy(),
+            'most_common_error': max(self.error_types.items(), key=lambda x: x[1]) if self.error_types else None
+        }
 
-# Initialize default logging
-def init_default_logging():
-    """Initialize default logging configuration."""
-    log_file = os.getenv('LOG_FILE', 'logs/telegram_scraper.log')
-    log_level = os.getenv('LOG_LEVEL', 'INFO')
+# Global error tracker instance
+error_tracker = ErrorTracker(get_logger('error_tracker'))
+
+def log_error(error: Exception, context: Optional[Dict[str, Any]] = None):
+    """
+    Convenience function to log errors with the global error tracker.
     
-    return setup_logging(
-        log_level=log_level,
-        log_file=log_file,
-        enable_console=True,
-        enable_file=True
-    ) 
+    Args:
+        error: The exception to log
+        context: Optional context dictionary
+    """
+    error_tracker.track_error(error, context) 

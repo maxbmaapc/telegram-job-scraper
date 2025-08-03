@@ -1,0 +1,39 @@
+# Telegram Job Scraper Cron Configuration Examples
+# Add these to your crontab using: crontab -e
+
+# Run scraper every 30 minutes during business hours (Mon-Fri, 9 AM - 6 PM)
+0,30 9-18 * * 1-5 cd /path/to/telegram-job-scraper && python src/main.py --mode single --limit 50 >> logs/cron.log 2>&1
+
+# Run scraper every hour during business hours
+0 9-18 * * 1-5 cd /path/to/telegram-job-scraper && python src/main.py --mode single --limit 100 >> logs/cron.log 2>&1
+
+# Run scraper every 2 hours, 24/7
+0 */2 * * * cd /path/to/telegram-job-scraper && python src/main.py --mode single --limit 50 >> logs/cron.log 2>&1
+
+# Run scraper daily at 9 AM
+0 9 * * * cd /path/to/telegram-job-scraper && python src/main.py --mode single --limit 200 >> logs/cron.log 2>&1
+
+# Run scraper with Docker (if using containerized deployment)
+0,30 9-18 * * 1-5 cd /path/to/telegram-job-scraper && docker-compose exec telegram-scraper python src/main.py --mode single --limit 50 >> logs/cron.log 2>&1
+
+# Run scraper with custom configuration
+0 9 * * * cd /path/to/telegram-job-scraper && python src/main.py --mode single --limit 100 --config custom_config.json >> logs/cron.log 2>&1
+
+# Clean up old logs weekly (keep last 30 days)
+0 2 * * 0 find /path/to/telegram-job-scraper/logs -name "*.log" -mtime +30 -delete
+
+# Backup database daily at 3 AM
+0 3 * * * cd /path/to/telegram-job-scraper && cp data/jobs.db backups/jobs_$(date +\%Y\%m\%d).db
+
+# Health check every 15 minutes
+*/15 * * * * cd /path/to/telegram-job-scraper && curl -f http://localhost:5000/health > /dev/null 2>&1 || echo "Health check failed at $(date)" >> logs/health.log
+
+# Restart service if health check fails (run after health check)
+*/15 * * * * cd /path/to/telegram-job-scraper && if ! curl -f http://localhost:5000/health > /dev/null 2>&1; then docker-compose restart telegram-scraper; fi
+
+# Notes:
+# - Replace /path/to/telegram-job-scraper with your actual project path
+# - Adjust the --limit parameter based on your needs
+# - Monitor logs/cron.log for any errors
+# - Consider using a process manager like Supervisor for more robust scheduling
+# - For production, consider using the built-in scheduler instead of cron 

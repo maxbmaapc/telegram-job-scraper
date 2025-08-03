@@ -68,7 +68,7 @@ services:
       - ./config:/app/config:ro
 
     ports:
-      - "5000:5000" # Web UI
+      - "5001:5000" # Web UI
 
     networks:
       - scraper-network
@@ -134,15 +134,7 @@ services:
     profiles:
       - production
 
-networks:
-  scraper-network:
-    driver: bridge
-
-volumes:
-  redis-data:
-    driver: local
-
-  # Development override
+  # Development override service
   telegram-scraper-dev:
     extends: telegram-scraper
     profiles:
@@ -155,3 +147,11 @@ volumes:
       - ./data:/app/data
       - ./logs:/app/logs
       - ./sessions:/app/sessions
+
+networks:
+  scraper-network:
+    driver: bridge
+
+volumes:
+  redis-data:
+    driver: local

@@ -152,7 +152,7 @@ class Config:
     def _setup_logging(self):
         """Setup enhanced logging configuration."""
         log_level = os.getenv('LOG_LEVEL', 'INFO')
-        log_file = os.getenv('LOG_FILE', 'logs/telegram_scraper.log')
+        log_file = os.getenv('LOG_FILE', 'telegram_scraper.log')
         enable_json = os.getenv('LOG_JSON', 'false').lower() == 'true'
         enable_colors = os.getenv('LOG_COLORS', 'true').lower() == 'true'
         

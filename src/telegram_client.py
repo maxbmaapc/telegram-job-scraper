@@ -20,7 +20,7 @@ class TelegramJobClient:
                 config.session_name,
                 config.api_id,
                 config.api_hash
-            ).start(bot_token=config.bot_token)
+            )
         else:
             # User authentication
             self.client = TelegramClient(
@@ -36,8 +36,8 @@ class TelegramJobClient:
         """Start the Telegram client"""
         try:
             if config.auth_method == 'bot':
-                # Bot authentication - already started in __init__
-                await self.client.connect()
+                # Bot authentication
+                await self.client.start(bot_token=config.bot_token)
                 self.me = await self.client.get_me()
                 logger.info(f'Bot logged in as {self.me.first_name} (@{self.me.username})')
             else:

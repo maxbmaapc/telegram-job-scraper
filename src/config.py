@@ -25,7 +25,18 @@ class Config:
         # Telegram API Credentials
         self.api_id = self._get_required_env('API_ID')
         self.api_hash = self._get_required_env('API_HASH')
-        self.phone_number = self._get_required_env('PHONE_NUMBER')
+        
+        # Authentication method: 'user' or 'bot'
+        self.auth_method = os.getenv('AUTH_METHOD', 'user').lower()
+        
+        if self.auth_method == 'bot':
+            # Bot token authentication
+            self.bot_token = self._get_required_env('BOT_TOKEN')
+            self.phone_number = None
+        else:
+            # User account authentication
+            self.bot_token = None
+            self.phone_number = self._get_required_env('PHONE_NUMBER')
         
         # Target Channels
         self.target_channels = self._parse_list_env('TARGET_CHANNELS')
@@ -189,8 +200,15 @@ class Config:
         if len(self.api_hash) != 32:
             errors.append("API_HASH must be exactly 32 characters long")
         
-        if not self._is_valid_phone_number(self.phone_number):
-            errors.append("PHONE_NUMBER must be in international format (e.g., +1234567890)")
+        # Validate authentication method
+        if self.auth_method == 'bot':
+            if not self.bot_token:
+                errors.append("BOT_TOKEN is required when using bot authentication")
+            if not self.bot_token.startswith('5'):
+                warnings.append("BOT_TOKEN should start with '5' for valid bot tokens")
+        else:
+            if not self._is_valid_phone_number(self.phone_number):
+                errors.append("PHONE_NUMBER must be in international format (e.g., +1234567890)")
         
         # Validate target channels
         if not self.target_channels:

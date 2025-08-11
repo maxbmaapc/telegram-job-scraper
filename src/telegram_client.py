@@ -14,20 +14,37 @@ class TelegramJobClient:
     """Telegram client for job scraping"""
     
     def __init__(self):
-        self.client = TelegramClient(
-            config.session_name,
-            config.api_id,
-            config.api_hash
-        )
+        if config.auth_method == 'bot':
+            # Bot authentication
+            self.client = TelegramClient(
+                config.session_name,
+                config.api_id,
+                config.api_hash
+            ).start(bot_token=config.bot_token)
+        else:
+            # User authentication
+            self.client = TelegramClient(
+                config.session_name,
+                config.api_id,
+                config.api_hash
+            )
+        
         self.me = None
         self.target_entities = []
         
     async def start(self):
         """Start the Telegram client"""
         try:
-            await self.client.start(phone=config.phone_number)
-            self.me = await self.client.get_me()
-            logger.info(f'Logged in as {self.me.first_name} (@{self.me.username})')
+            if config.auth_method == 'bot':
+                # Bot authentication - already started in __init__
+                await self.client.connect()
+                self.me = await self.client.get_me()
+                logger.info(f'Bot logged in as {self.me.first_name} (@{self.me.username})')
+            else:
+                # User authentication
+                await self.client.start(phone=config.phone_number)
+                self.me = await self.client.get_me()
+                logger.info(f'Logged in as {self.me.first_name} (@{self.me.username})')
             
             # Get target entities
             await self._load_target_entities()

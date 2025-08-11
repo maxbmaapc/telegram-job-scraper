@@ -9,6 +9,8 @@ services:
       # Telegram API Credentials (set these in .env file)
       - API_ID=${API_ID}
       - API_HASH=${API_HASH}
+      - AUTH_METHOD=${AUTH_METHOD:-user}
+      - BOT_TOKEN=${BOT_TOKEN}
       - PHONE_NUMBER=${PHONE_NUMBER}
 
       # Target Channels

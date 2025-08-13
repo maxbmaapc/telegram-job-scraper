@@ -2,7 +2,7 @@
 
 services:
   telegram-scraper:
-    build: .
+    image: telegram-job-scraper:latest
     container_name: telegram-job-scraper
     restart: unless-stopped
     environment:

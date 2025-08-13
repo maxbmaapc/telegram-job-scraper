@@ -27,6 +27,19 @@ class RussianJobFilter:
             'staff', 'staff engineer', 'staff разработчик'
         ]
         
+        # Keywords to exclude (resumes/CVs)
+        self.resume_exclude_keywords = [
+            'резюме', 'cv', 'resume', 'curriculum vitae',
+            'ищу работу', 'looking for job', 'seeking position',
+            'открыт к предложениям', 'open to opportunities',
+            'готов к переезду', 'willing to relocate',
+            'активно ищу', 'actively seeking', 'job search',
+            'поиск работы', 'job hunting', 'career change',
+            'переход в компанию', 'company transition',
+            'новые возможности', 'new opportunities',
+            'смена работы', 'job switch', 'career move'
+        ]
+        
         # Junior keywords (if present, skip experience check)
         self.junior_keywords = [
             'junior', 'джуниор', 'джуниор разработчик', 'junior developer',
@@ -79,6 +92,11 @@ class RussianJobFilter:
                 logger.debug(f'Excluded due to senior/middle keywords')
                 return False
             
+            # Check resume/CV keywords
+            if self.has_resume_keywords(text):
+                logger.debug(f'Excluded due to resume/CV keywords')
+                return False
+            
             # Check experience requirements
             if not self.matches_experience_requirements(text):
                 logger.debug(f'Excluded due to experience requirements')
@@ -118,6 +136,19 @@ class RussianJobFilter:
         
         for exclude_keyword in self.exclude_keywords:
             if exclude_keyword in text_lower:
+                return True
+        
+        return False
+    
+    def has_resume_keywords(self, text: str) -> bool:
+        """Check if text contains resume/CV keywords"""
+        if not text:
+            return False
+            
+        text_lower = text.lower()
+        
+        for resume_keyword in self.resume_exclude_keywords:
+            if resume_keyword in text_lower:
                 return True
         
         return False
@@ -305,6 +336,11 @@ class RussianJobFilter:
         for exclude_keyword in self.exclude_keywords:
             if exclude_keyword in text_lower:
                 found.append(exclude_keyword)
+        
+        # Also check for resume keywords
+        for resume_keyword in self.resume_exclude_keywords:
+            if resume_keyword in text_lower:
+                found.append(f"resume: {resume_keyword}")
         
         return found
 

@@ -4,8 +4,28 @@ from typing import List, Dict, Any, Optional
 import logging
 from decimal import Decimal
 
-from .salary_extractor import salary_extractor, extract_salary_from_text
-from .logging_config import get_logger
+# Try to import salary_extractor, but provide fallback if it fails
+try:
+    from .salary_extractor import salary_extractor, extract_salary_from_text
+except ImportError:
+    # Fallback for when running outside of package context
+    class MockSalaryExtractor:
+        def extract_salaries(self, text):
+            return []
+        
+        def normalize_to_yearly(self, salary):
+            return None
+    
+    salary_extractor = MockSalaryExtractor()
+    extract_salary_from_text = lambda x: []
+
+# Try to import logging_config, but provide fallback if it fails
+try:
+    from .logging_config import get_logger
+except ImportError:
+    # Fallback for when running outside of package context
+    def get_logger(name):
+        return logging.getLogger(name)
 
 logger = get_logger(__name__)
 
@@ -27,26 +47,69 @@ class RussianJobFilter:
             'staff', 'staff engineer', 'staff разработчик'
         ]
         
-        # Keywords to exclude (resumes/CVs)
+        # Enhanced keywords to exclude (resumes/CVs - more comprehensive)
         self.resume_exclude_keywords = [
-            'резюме', 'cv', 'resume', 'curriculum vitae',
-            'ищу работу', 'looking for job', 'seeking position',
-            'открыт к предложениям', 'open to opportunities',
-            'готов к переезду', 'willing to relocate',
-            'активно ищу', 'actively seeking', 'job search',
-            'поиск работы', 'job hunting', 'career change',
-            'переход в компанию', 'company transition',
-            'новые возможности', 'new opportunities',
-            'смена работы', 'job switch', 'career move'
+            # Direct resume/CV indicators
+            'резюме', 'cv', 'resume', 'curriculum vitae', 'curriculum vitae',
+            'анкета', 'application', 'заявка', 'портфолио', 'portfolio',
+            
+            # Job seeking indicators
+            'ищу работу', 'looking for job', 'seeking position', 'seeking job',
+            'открыт к предложениям', 'open to opportunities', 'open to offers',
+            'готов к переезду', 'willing to relocate', 'готов к релокации',
+            'активно ищу', 'actively seeking', 'job search', 'поиск работы',
+            'job hunting', 'career change', 'смена карьеры', 'смена работы',
+            'переход в компанию', 'company transition', 'смена работодателя',
+            'новые возможности', 'new opportunities', 'новые проекты',
+            'job switch', 'career move', 'смена направления',
+            
+            # Availability indicators
+            'доступен для проектов', 'available for projects', 'свободен',
+            'ищу проект', 'looking for project', 'ищу заказчика',
+            'готов к сотрудничеству', 'ready to collaborate',
+            'ищу команду', 'looking for team', 'ищу компанию',
+            
+            # Experience description (often in resumes)
+            'имею опыт в', 'have experience in', 'работал с', 'worked with',
+            'мои навыки', 'my skills', 'мои технологии', 'my technologies',
+            'знаю', 'know', 'изучал', 'studied', 'изучаю', 'studying',
+            
+            # Personal pronouns (common in resumes)
+            'я разработчик', 'i am developer', 'я программист', 'i am programmer',
+            'моя специализация', 'my specialization', 'мои интересы', 'my interests'
         ]
         
-        # Junior keywords (if present, skip experience check)
+        # Strict junior keywords - only accept developer/engineer positions
         self.junior_keywords = [
-            'junior', 'джуниор', 'джуниор разработчик', 'junior developer',
-            'стажер', 'intern', 'internship', 'стажировка',
-            'trainee', 'трени', 'trainee developer',
-            'entry level', 'entry-level', 'начальный уровень',
-            'без опыта', 'no experience', 'опыт не требуется'
+            'junior developer', 'джуниор разработчик', 'junior разработчик',
+            'junior engineer', 'джуниор инженер', 'junior инженер',
+            'junior software developer', 'джуниор программист', 'junior программист',
+            'junior software engineer', 'джуниор софт инженер',
+            'стажер разработчик', 'intern developer', 'стажировка разработчик',
+            'trainee developer', 'трени разработчик', 'trainee engineer',
+            'entry level developer', 'entry-level developer', 'начальный уровень разработчик',
+            'без опыта разработчик', 'no experience developer', 'опыт не требуется разработчик',
+            # Additional variations
+            'junior python developer', 'junior javascript developer', 'junior js developer',
+            'junior react developer', 'junior web3 developer', 'junior blockchain developer',
+            'junior frontend developer', 'junior backend developer', 'junior full stack developer',
+            'джуниор python разработчик', 'джуниор javascript разработчик', 'джуниор js разработчик',
+            'джуниор react разработчик', 'джуниор web3 разработчик', 'джуниор blockchain разработчик'
+        ]
+        
+        # Keywords that indicate it's NOT a developer/engineer position (reject these)
+        # Note: web3 and blockchain are allowed when combined with developer/engineer keywords
+        self.non_developer_keywords = [
+            'маркетинг', 'marketing', 'продажи', 'sales', 'менеджер', 'manager',
+            'аналитик', 'analyst', 'дизайнер', 'designer', 'тестировщик', 'tester',
+            'qa', 'quality assurance', 'devops', 'системный администратор', 'sysadmin',
+            'data scientist', 'data analyst', 'product manager', 'project manager',
+            'hr', 'human resources', 'рекрутер', 'recruiter', 'бухгалтер', 'accountant'
+        ]
+        
+        # Keywords that are only allowed when combined with developer/engineer terms
+        self.contextual_keywords = [
+            'web3', 'web 3', 'blockchain', 'crypto', 'nft', 'defi'
         ]
         
         # Remote work keywords (required for job to be accepted)
@@ -76,37 +139,46 @@ class RussianJobFilter:
             # Extract message text
             text = self._extract_message_text(message)
             if not text:
+                logger.debug('Message excluded: no text content')
                 return False
             
             # Check keyword filter
             if not self.matches_keywords(text):
+                logger.debug('Message excluded: no keyword matches')
                 return False
             
             # Check date filter
             message_date = self._extract_message_date(message)
             if not self.matches_date_filter(message_date):
+                logger.debug('Message excluded: outside date filter window')
                 return False
             
             # Check exclude keywords (senior/middle positions)
             if self.has_exclude_keywords(text):
-                logger.debug(f'Excluded due to senior/middle keywords')
+                logger.debug(f'Message excluded: contains senior/middle keywords')
                 return False
             
-            # Check resume/CV keywords
+            # Check resume/CV keywords (enhanced detection)
             if self.has_resume_keywords(text):
-                logger.debug(f'Excluded due to resume/CV keywords')
+                logger.debug(f'Message excluded: contains resume/CV keywords')
+                return False
+            
+            # Check if it's a non-developer position
+            if self.has_non_developer_keywords(text):
+                logger.debug(f'Message excluded: contains non-developer keywords')
                 return False
             
             # Check experience requirements
             if not self.matches_experience_requirements(text):
-                logger.debug(f'Excluded due to experience requirements')
+                logger.debug(f'Message excluded: does not meet experience requirements')
                 return False
             
             # Check remote work requirement
             if not self.matches_remote_requirement(text):
-                logger.debug(f'Excluded due to no remote work mentioned')
+                logger.debug(f'Message excluded: no remote work mentioned')
                 return False
             
+            logger.debug('Message passed all filters successfully')
             return True
             
         except Exception as e:
@@ -141,15 +213,81 @@ class RussianJobFilter:
         return False
     
     def has_resume_keywords(self, text: str) -> bool:
-        """Check if text contains resume/CV keywords"""
+        """Check if text contains resume/CV keywords (enhanced detection)"""
         if not text:
             return False
             
         text_lower = text.lower()
         
+        # Check for resume keywords with context
         for resume_keyword in self.resume_exclude_keywords:
             if resume_keyword in text_lower:
+                logger.debug(f'Found resume keyword: "{resume_keyword}"')
+                # Additional context check to reduce false positives
+                if self._is_likely_resume_context(text_lower, resume_keyword):
+                    logger.debug(f'Resume keyword "{resume_keyword}" confirmed in resume context')
+                    return True
+                else:
+                    logger.debug(f'Resume keyword "{resume_keyword}" found but not in resume context - allowing through')
+        
+        return False
+    
+    def _is_likely_resume_context(self, text: str, keyword: str) -> bool:
+        """Check if the keyword appears in a resume-like context"""
+        # If it's a direct resume indicator, it's likely a resume
+        direct_indicators = ['резюме', 'cv', 'resume', 'curriculum vitae', 'анкета', 'application']
+        if keyword in direct_indicators:
+            logger.debug(f'Direct resume indicator found: "{keyword}"')
+            return True
+        
+        # Check for personal pronouns near the keyword (common in resumes)
+        personal_indicators = ['я', 'i', 'моя', 'my', 'меня', 'me', 'мне', 'to me']
+        for indicator in personal_indicators:
+            if indicator in text:
+                # Check if personal indicator is close to the keyword
+                keyword_pos = text.find(keyword)
+                indicator_pos = text.find(indicator)
+                if abs(keyword_pos - indicator_pos) < 100:  # Within 100 characters
+                    logger.debug(f'Personal indicator "{indicator}" found near resume keyword "{keyword}"')
+                    return True
+        
+        # Check for job-seeking language patterns
+        seeking_patterns = [
+            r'ищу\s+работу', r'looking\s+for\s+job', r'seeking\s+position',
+            r'открыт\s+к\s+предложениям', r'open\s+to\s+opportunities'
+        ]
+        for pattern in seeking_patterns:
+            if re.search(pattern, text, re.IGNORECASE):
+                logger.debug(f'Job-seeking pattern found: "{pattern}"')
                 return True
+        
+        return False
+    
+    def has_non_developer_keywords(self, text: str) -> bool:
+        """Check if text contains keywords indicating non-developer positions"""
+        if not text:
+            return False
+            
+        text_lower = text.lower()
+        
+        # Check for non-developer keywords
+        for non_dev_keyword in self.non_developer_keywords:
+            if non_dev_keyword in text_lower:
+                logger.debug(f'Found non-developer keyword: "{non_dev_keyword}"')
+                return True
+        
+        # Check for contextual keywords (web3, blockchain, etc.) - only reject if NOT combined with developer terms
+        for contextual_keyword in self.contextual_keywords:
+            if contextual_keyword in text_lower:
+                # Check if it's combined with developer/engineer terms
+                developer_terms = ['developer', 'engineer', 'разработчик', 'инженер', 'программист']
+                has_developer_term = any(term in text_lower for term in developer_terms)
+                
+                if not has_developer_term:
+                    logger.debug(f'Found contextual keyword "{contextual_keyword}" without developer terms - rejecting')
+                    return True
+                else:
+                    logger.debug(f'Found contextual keyword "{contextual_keyword}" with developer terms - allowing')
         
         return False
     
@@ -160,10 +298,17 @@ class RussianJobFilter:
             
         text_lower = text.lower()
         
-        # If junior keywords are present, accept the post
+        # Check for strict junior keywords (only developer/engineer positions)
         for junior_keyword in self.junior_keywords:
             if junior_keyword in text_lower:
-                return True
+                logger.debug(f'Found junior keyword: "{junior_keyword}"')
+                # Additional check: make sure it's not combined with non-developer keywords
+                if not self.has_non_developer_keywords(text_lower):
+                    logger.debug(f'Junior keyword "{junior_keyword}" confirmed for developer position')
+                    return True
+                else:
+                    logger.debug(f'Junior keyword "{junior_keyword}" found but combined with non-developer keywords - rejecting')
+                    return False
         
         # Check experience patterns
         for pattern in self.experience_patterns:
@@ -171,16 +316,19 @@ class RussianJobFilter:
             for match in matches:
                 try:
                     years = int(match)
+                    logger.debug(f'Found experience requirement: {years} years')
                     # Accept if experience is 2 years or less
                     if years <= 2:
+                        logger.debug(f'Experience requirement {years} years is acceptable')
                         return True
                     else:
-                        logger.debug(f'Experience too high: {years} years')
+                        logger.debug(f'Experience requirement {years} years is too high')
                         return False
                 except ValueError:
                     continue
         
         # If no experience mentioned and no junior keywords, accept (could be entry level)
+        logger.debug('No specific experience requirements found, accepting as potential entry level')
         return True
     
     def matches_remote_requirement(self, text: str) -> bool:
@@ -202,6 +350,11 @@ class RussianJobFilter:
         """Check if message is within the configured time window"""
         if self.date_filter_hours <= 0:
             return True  # No date filter
+        
+        # Handle None dates
+        if message_date is None:
+            logger.debug('Message has no date, accepting by default')
+            return True
             
         # Ensure both dates are timezone-aware or timezone-naive
         if message_date.tzinfo is None:
@@ -256,8 +409,11 @@ class RussianJobFilter:
             
         text_lower = text.lower()
         
-        # Check for junior keywords
+        # Check for strict junior keywords
         junior_found = any(junior_keyword in text_lower for junior_keyword in self.junior_keywords)
+        
+        # Check for non-developer keywords
+        non_dev_found = self.has_non_developer_keywords(text_lower)
         
         # Check for experience patterns
         experience_years = None
@@ -274,10 +430,11 @@ class RussianJobFilter:
         remote_found = any(remote_keyword in text_lower for remote_keyword in self.remote_keywords)
         
         return {
-            'is_junior': junior_found,
+            'is_junior': junior_found and not non_dev_found,
             'experience_years': experience_years,
             'is_remote': remote_found,
-            'meets_requirements': (junior_found or (experience_years is not None and experience_years <= 2)) and remote_found
+            'is_developer_position': not non_dev_found,
+            'meets_requirements': (junior_found and not non_dev_found) or (experience_years is not None and experience_years <= 2 and not non_dev_found) and remote_found
         }
     
     def get_salary_info(self, text: str) -> Dict[str, Any]:
@@ -322,7 +479,8 @@ class RussianJobFilter:
             'matched_keywords': self.get_matched_keywords(text),
             'excluded_keywords': self._get_excluded_keywords(text),
             'remote_work_mentioned': experience_info.get('is_remote', False),
-            'junior_position': experience_info.get('is_junior', False)
+            'junior_position': experience_info.get('is_junior', False),
+            'developer_position': experience_info.get('is_developer_position', False)
         }
     
     def _get_excluded_keywords(self, text: str) -> List[str]:
@@ -341,6 +499,23 @@ class RussianJobFilter:
         for resume_keyword in self.resume_exclude_keywords:
             if resume_keyword in text_lower:
                 found.append(f"resume: {resume_keyword}")
+        
+        # Check for non-developer keywords
+        for non_dev_keyword in self.non_developer_keywords:
+            if non_dev_keyword in text_lower:
+                found.append(f"non-dev: {non_dev_keyword}")
+        
+        # Check for contextual keywords
+        for contextual_keyword in self.contextual_keywords:
+            if contextual_keyword in text_lower:
+                # Check if it's combined with developer terms
+                developer_terms = ['developer', 'engineer', 'разработчик', 'инженер', 'программист']
+                has_developer_term = any(term in text_lower for term in developer_terms)
+                
+                if has_developer_term:
+                    found.append(f"contextual: {contextual_keyword} (with developer terms)")
+                else:
+                    found.append(f"contextual: {contextual_keyword} (without developer terms)")
         
         return found
 

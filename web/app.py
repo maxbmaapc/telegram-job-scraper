@@ -31,18 +31,46 @@ db_manager = DatabaseManager()
 
 @app.route('/')
 def index():
-    """Main dashboard page"""
+    """Main page showing scraper status and configuration"""
     try:
-        # Get statistics
-        stats = db_manager.get_statistics()
-        
-        # Get recent jobs
-        recent_jobs = db_manager.get_jobs(limit=10)
-        
-        return render_template('index.html', stats=stats, recent_jobs=recent_jobs)
+        config_summary = config.get_config_summary()
+        return jsonify({
+            'status': 'running',
+            'service': 'Telegram Job Scraper',
+            'config': config_summary
+        })
     except Exception as e:
-        logger.error(f'Error loading dashboard: {e}')
-        return render_template('error.html', error=str(e))
+        return jsonify({
+            'status': 'error',
+            'service': 'Telegram Job Scraper',
+            'error': str(e)
+        }), 500
+
+@app.route('/health')
+def health():
+    """Health check endpoint for DigitalOcean App Platform"""
+    try:
+        # Basic health check - just verify the app is running
+        return jsonify({
+            'status': 'healthy',
+            'service': 'Telegram Job Scraper',
+            'timestamp': '2024-01-01T00:00:00Z'
+        }), 200
+    except Exception as e:
+        return jsonify({
+            'status': 'unhealthy',
+            'service': 'Telegram Job Scraper',
+            'error': str(e)
+        }), 500
+
+@app.route('/config')
+def get_config():
+    """Get current configuration (without sensitive data)"""
+    try:
+        config_summary = config.get_config_summary()
+        return jsonify(config_summary)
+    except Exception as e:
+        return jsonify({'error': str(e)}), 500
 
 @app.route('/jobs')
 def jobs():

@@ -1,0 +1,62 @@
+name: telegram-job-scraper
+services:
+  - name: telegram-scraper
+    source_dir: /
+    dockerfile_path: Dockerfile.do
+    github:
+      repo: maxbmaapc/telegram-job-scraper
+      branch: main
+    instance_count: 1
+    instance_size_slug: basic-xxs
+    envs:
+      - key: API_ID
+        scope: RUN_AND_BUILD_TIME
+        value: ${API_ID}
+      - key: API_HASH
+        scope: RUN_AND_BUILD_TIME
+        value: ${API_HASH}
+      - key: PHONE_NUMBER
+        scope: RUN_AND_BUILD_TIME
+        value: ${PHONE_NUMBER}
+      - key: TARGET_CHANNELS
+        scope: RUN_AND_BUILD_TIME
+        value: ${TARGET_CHANNELS}
+      - key: TARGET_USER_ID
+        scope: RUN_AND_BUILD_TIME
+        value: ${TARGET_USER_ID}
+      - key: FILTER_KEYWORDS
+        scope: RUN_AND_BUILD_TIME
+        value: "python,javascript,js,react,developer,software engineer,job,hire,remote"
+      - key: DATE_FILTER_HOURS
+        scope: RUN_AND_BUILD_TIME
+        value: "24"
+      - key: OUTPUT_METHOD
+        scope: RUN_AND_BUILD_TIME
+        value: "telegram"
+      - key: SEND_TO_SELF
+        scope: RUN_AND_BUILD_TIME
+        value: "false"
+      - key: LOG_LEVEL
+        scope: RUN_AND_BUILD_TIME
+        value: "INFO"
+      - key: SCHEDULE_INTERVAL_MINUTES
+        scope: RUN_AND_BUILD_TIME
+        value: "30"
+      - key: SCHEDULE_START_TIME
+        scope: RUN_AND_BUILD_TIME
+        value: "09:00"
+      - key: SCHEDULE_END_TIME
+        scope: RUN_AND_BUILD_TIME
+        value: "18:00"
+      - key: SCHEDULE_DAYS_OF_WEEK
+        scope: RUN_AND_BUILD_TIME
+        value: "1,2,3,4,5"
+      - key: MESSAGE_DELAY_MIN
+        scope: RUN_AND_BUILD_TIME
+        value: "2.0"
+      - key: MESSAGE_DELAY_MAX
+        scope: RUN_AND_BUILD_TIME
+        value: "3.0"
+      - key: PORT
+        scope: RUN_AND_BUILD_TIME
+        value: "5000"

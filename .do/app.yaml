@@ -4,10 +4,18 @@ services:
     source_dir: /
     dockerfile_path: Dockerfile.do
     github:
-      repo: your-username/telegram-job-scraper
+      repo: maxbmaapc/telegram-job-scraper
       branch: main
     instance_count: 1
     instance_size_slug: basic-xxs
+    http_port: 5000
+    health_check:
+      http_path: /health
+      initial_delay_seconds: 30
+      interval_seconds: 10
+      timeout_seconds: 5
+      unhealthy_threshold: 3
+      healthy_threshold: 2
     envs:
       - key: API_ID
         scope: RUN_AND_BUILD_TIME

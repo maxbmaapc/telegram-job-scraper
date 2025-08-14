@@ -215,8 +215,12 @@ def internal_error(error):
     return render_template('error.html', error='Internal server error'), 500
 
 if __name__ == '__main__':
+    # Get port from environment or use default
+    port = int(os.getenv('WEB_PORT', os.getenv('PORT', 8080)))
+    host = os.getenv('WEB_HOST', '0.0.0.0')
+    
     app.run(
-        host=config.web_host,
-        port=config.web_port,
-        debug=True
+        host=host,
+        port=port,
+        debug=False  # Set to False for production
     )

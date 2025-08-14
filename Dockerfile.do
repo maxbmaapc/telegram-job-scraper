@@ -26,16 +26,16 @@ RUN mkdir -p logs sessions data
 # Set environment variables
 ENV PYTHONPATH=/app/src
 ENV PYTHONUNBUFFERED=1
-ENV PORT=5000
+ENV PORT=8080
 ENV WEB_HOST=0.0.0.0
-ENV WEB_PORT=5000
+ENV WEB_PORT=8080
 
 # Expose port
-EXPOSE 5000
+EXPOSE 8080
 
 # Health check
 HEALTHCHECK --interval=30s --timeout=10s --start-period=60s --retries=5 \
-    CMD curl -f http://localhost:5000/health || exit 1
+    CMD curl -f http://localhost:8080/health || exit 1
 
 # Create a startup script to run both services
 RUN echo '#!/bin/bash\n\

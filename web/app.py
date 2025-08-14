@@ -16,8 +16,24 @@ import logging
 # Add src to path for imports
 sys.path.insert(0, os.path.join(os.path.dirname(__file__), '..', 'src'))
 
-from config import config
-from output import DatabaseManager
+try:
+    from config import config
+    from output import DatabaseManager
+except ImportError as e:
+    # Fallback for when running outside the main package
+    print(f"Warning: Could not import main modules: {e}")
+    print("Running in minimal mode for health checks only")
+    
+    # Create a minimal config object for health checks
+    class MinimalConfig:
+        def get_config_summary(self):
+            return {
+                'status': 'minimal_mode',
+                'message': 'Running in minimal mode for health checks'
+            }
+    
+    config = MinimalConfig()
+    DatabaseManager = None
 
 app = Flask(__name__)
 CORS(app)
@@ -26,14 +42,18 @@ CORS(app)
 logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
 
-# Initialize database manager
-db_manager = DatabaseManager()
+# Initialize database manager if available
+db_manager = DatabaseManager() if DatabaseManager else None
 
 @app.route('/')
 def index():
     """Main page showing scraper status and configuration"""
     try:
-        config_summary = config.get_config_summary()
+        if hasattr(config, 'get_config_summary'):
+            config_summary = config.get_config_summary()
+        else:
+            config_summary = {'status': 'running', 'service': 'Telegram Job Scraper'}
+        
         return jsonify({
             'status': 'running',
             'service': 'Telegram Job Scraper',
@@ -54,7 +74,8 @@ def health():
         return jsonify({
             'status': 'healthy',
             'service': 'Telegram Job Scraper',
-            'timestamp': '2024-01-01T00:00:00Z'
+            'timestamp': '2024-01-01T00:00:00Z',
+            'message': 'Web server is running and responding to requests'
         }), 200
     except Exception as e:
         return jsonify({

@@ -1,0 +1,95 @@
+# Telegram Job Scraper Configuration Template
+# Copy this file to .env and fill in your actual values
+
+# Telegram API Credentials (Required)
+# Get these from https://my.telegram.org/apps
+API_ID=your_api_id_here
+API_HASH=your_api_hash_here
+
+# Phone Number (Required for UserBot authentication)
+# Include country code, e.g., +1234567890
+PHONE_NUMBER=+1234567890
+
+# Target Channels (Required)
+# Channel IDs must start with -100 and be valid Telegram channel IDs
+# Examples:
+# TARGET_CHANNELS=-1001234567890,-1009876543210,-100111222333
+# To get channel IDs:
+# 1. Forward a message from the channel to @userinfobot
+# 2. The bot will reply with the channel ID
+# 3. Add this ID to your TARGET_CHANNELS environment variable
+TARGET_CHANNELS=-1001234567890,-1009876543210
+
+# Target User ID (Required)
+# Your Telegram user ID where job postings will be sent
+# To get your user ID:
+# 1. Send a message to @userinfobot
+# 2. The bot will reply with your user ID
+TARGET_USER_ID=123456789
+
+# Filter Keywords (Optional)
+# Comma-separated keywords to filter job postings
+# Default: python,javascript,js,react,developer,software engineer,job,hire,remote
+FILTER_KEYWORDS=python,javascript,js,react,developer,software engineer,job,hire,remote
+
+# Date Filter (Optional)
+# Only process messages from the last N hours
+# Default: 24 hours
+DATE_FILTER_HOURS=24
+
+# Output Method (Optional)
+# How to output job postings: telegram, database, or both
+# Default: telegram
+OUTPUT_METHOD=telegram
+
+# Send to Self (Optional)
+# Whether to send job postings to yourself
+# Default: false
+SEND_TO_SELF=false
+
+# Log Level (Optional)
+# Logging level: DEBUG, INFO, WARNING, ERROR
+# Default: INFO
+LOG_LEVEL=INFO
+
+# Scheduling (Optional)
+# How often to run the scraper (in minutes)
+# Default: 30 minutes
+SCHEDULE_INTERVAL_MINUTES=30
+
+# Schedule Start Time (Optional)
+# When to start scraping each day (24-hour format)
+# Default: 09:00
+SCHEDULE_START_TIME=09:00
+
+# Schedule End Time (Optional)
+# When to stop scraping each day (24-hour format)
+# Default: 18:00
+SCHEDULE_END_TIME=18:00
+
+# Schedule Days (Optional)
+# Days of the week to run (0=Sunday, 1=Monday, etc.)
+# Default: Monday through Friday (1,2,3,4,5)
+SCHEDULE_DAYS_OF_WEEK=1,2,3,4,5
+
+# Message Delay (Optional)
+# Delay between sending messages to avoid rate limiting
+# Default: 2-3 seconds
+MESSAGE_DELAY_MIN=2.0
+MESSAGE_DELAY_MAX=3.0
+
+# Web Server Settings (Optional)
+# Host and port for the web interface
+# Default: 0.0.0.0:8080 (for DigitalOcean compatibility)
+WEB_HOST=0.0.0.0
+WEB_PORT=8080
+
+# Database Settings (Optional)
+# Path to SQLite database file
+# Default: jobs.db
+DATABASE_PATH=jobs.db
+
+# Session Settings (Optional)
+# Name for the Telegram session file
+# Default: telegram_job_scraper
+SESSION_NAME=telegram_job_scraper

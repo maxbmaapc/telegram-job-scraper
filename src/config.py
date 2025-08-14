@@ -5,10 +5,20 @@ from pathlib import Path
 from typing import List, Optional, Dict, Any
 from dotenv import load_dotenv
 
-from .logging_config import get_logger, setup_logging
-
 # Load environment variables
 load_dotenv()
+
+# Try to import logging_config with fallback
+try:
+    from .logging_config import get_logger, setup_logging
+except ImportError:
+    # Fallback for when running outside package context
+    def get_logger(name):
+        logging.basicConfig(level=logging.INFO)
+        return logging.getLogger(name)
+    
+    def setup_logging():
+        logging.basicConfig(level=logging.INFO)
 
 class ConfigValidationError(Exception):
     """Custom exception for configuration validation errors."""

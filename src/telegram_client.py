@@ -8,8 +8,32 @@ from telethon.tl.types import Channel, Chat, User
 from telethon.errors import SessionPasswordNeededError, PhoneCodeInvalidError, FloodWaitError
 from telethon.sessions import StringSession
 
-from .config import config
-from .logging_config import get_logger
+# Try to import config and logging_config with fallbacks
+try:
+    from .config import config
+    from .logging_config import get_logger
+except ImportError:
+    # Fallback for when running outside package context
+    import sys
+    sys.path.insert(0, os.path.join(os.path.dirname(__file__), '..', 'src'))
+    try:
+        from config import config
+        from logging_config import get_logger
+    except ImportError:
+        # Final fallback - create minimal versions
+        class MinimalConfig:
+            def __init__(self):
+                self.api_id = os.getenv('API_ID')
+                self.api_hash = os.getenv('API_HASH')
+                self.phone_number = os.getenv('PHONE_NUMBER')
+                self.target_channels = os.getenv('TARGET_CHANNELS', '').split(',') if os.getenv('TARGET_CHANNELS') else []
+                self.session_name = 'telegram_job_scraper'
+        
+        config = MinimalConfig()
+        
+        def get_logger(name):
+            logging.basicConfig(level=logging.INFO)
+            return logging.getLogger(name)
 
 logger = get_logger(__name__)
 

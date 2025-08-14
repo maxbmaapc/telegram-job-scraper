@@ -17,8 +17,14 @@ except ImportError:
         logging.basicConfig(level=logging.INFO)
         return logging.getLogger(name)
     
-    def setup_logging():
-        logging.basicConfig(level=logging.INFO)
+    def setup_logging(**kwargs):
+        # Accept any keyword arguments but use basic logging
+        log_level = kwargs.get('log_level', 'INFO')
+        level = getattr(logging, log_level.upper(), logging.INFO)
+        logging.basicConfig(
+            level=level,
+            format='%(asctime)s - %(name)s - %(levelname)s - %(message)s'
+        )
 
 class ConfigValidationError(Exception):
     """Custom exception for configuration validation errors."""

@@ -9,6 +9,7 @@
 ## Step 1: Prepare Your Repository
 
 1. **Update the app.yaml file:**
+
    - Replace `your-username/telegram-job-scraper` with your actual GitHub username and repo name
    - Update any environment variables as needed
 
@@ -22,22 +23,26 @@
 ## Step 2: Deploy to DigitalOcean
 
 1. **Go to DigitalOcean App Platform:**
+
    - Login to [cloud.digitalocean.com](https://cloud.digitalocean.com)
    - Click "Apps" in the left sidebar
    - Click "Create App"
 
 2. **Connect GitHub:**
+
    - Choose "GitHub" as source
    - Select your repository: `telegram-job-scraper`
    - Select branch: `main`
 
 3. **Configure App:**
+
    - **App Name**: `telegram-job-scraper`
    - **Region**: Choose closest to your target audience
    - **Plan**: Start with `Basic` ($12/month)
 
 4. **Environment Variables:**
    Set these required variables:
+
    ```
    API_ID=your_telegram_api_id
    API_HASH=your_telegram_api_hash
@@ -68,6 +73,7 @@
 7. **Redeploy** the app
 
 ### **Important Notes:**
+
 - **Phone codes expire** after a few minutes
 - **You need to be quick** to get the code and set it
 - **Codes are one-time use** - you'll need a new one for each fresh deployment
@@ -76,11 +82,13 @@
 ## Step 4: Verify Deployment
 
 1. **Check App Status:**
+
    - Go to your app dashboard
    - Verify status is "Running"
    - Check logs for any errors
 
 2. **Test Health Endpoint:**
+
    - Visit: `https://your-app-name.ondigitalocean.app/health`
    - Should return: `{"status": "healthy", "service": "Telegram Job Scraper"}`
 
@@ -91,10 +99,12 @@
 ## Step 5: Monitor and Maintain
 
 1. **View Logs:**
+
    - In your app dashboard, click "Runtime Logs"
    - Monitor for errors or issues
 
 2. **Scale if Needed:**
+
    - Increase instance count for better performance
    - Upgrade to larger instance size if needed
 
@@ -105,11 +115,13 @@
 ## Configuration Options
 
 ### **Instance Sizes:**
+
 - `basic-xxs`: $12/month (1 vCPU, 512MB RAM) - **Recommended to start**
 - `basic-xs`: $18/month (1 vCPU, 1GB RAM)
 - `basic-s`: $24/month (1 vCPU, 2GB RAM)
 
 ### **Environment Variables:**
+
 ```yaml
 # Required
 API_ID: Your Telegram API ID
@@ -135,16 +147,19 @@ SCHEDULE_INTERVAL_MINUTES: "30"
 ### **Common Issues:**
 
 1. **Build Fails:**
+
    - Check requirements.txt has all dependencies
    - Verify Dockerfile syntax
    - Check runtime logs
 
 2. **App Won't Start:**
+
    - Verify all environment variables are set
    - Check if Telegram credentials are correct
    - Look for authentication errors in logs
 
 3. **Authentication Fails:**
+
    - **Phone Code Issues**: Make sure `TELEGRAM_PHONE_CODE` is set and valid
    - **2FA Issues**: Set `TELEGRAM_2FA_PASSWORD` if you have 2FA enabled
    - **Code Expired**: Get a fresh code and update the environment variable

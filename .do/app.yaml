@@ -4,7 +4,7 @@ services:
     source_dir: /
     dockerfile_path: Dockerfile.do
     github:
-      repo: maxbmaapc/telegram-job-scraper
+      repo: your-username/telegram-job-scraper
       branch: main
     instance_count: 1
     instance_size_slug: basic-xxs
@@ -24,6 +24,12 @@ services:
       - key: TARGET_USER_ID
         scope: RUN_AND_BUILD_TIME
         value: ${TARGET_USER_ID}
+      - key: TELEGRAM_PHONE_CODE
+        scope: RUN_AND_BUILD_TIME
+        value: ${TELEGRAM_PHONE_CODE}
+      - key: TELEGRAM_2FA_PASSWORD
+        scope: RUN_AND_BUILD_TIME
+        value: ${TELEGRAM_2FA_PASSWORD}
       - key: FILTER_KEYWORDS
         scope: RUN_AND_BUILD_TIME
         value: "python,javascript,js,react,developer,software engineer,job,hire,remote"

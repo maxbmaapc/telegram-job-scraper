@@ -1,5 +1,6 @@
 import asyncio
 import logging
+import os
 from typing import List, Dict, Any, Optional
 from telethon import TelegramClient, events
 from telethon.tl.types import Channel, Chat, User
@@ -7,11 +8,12 @@ from telethon.errors import SessionPasswordNeededError, PhoneCodeInvalidError
 from telethon.sessions import StringSession
 
 from .config import config
+from .logging_config import get_logger
 
-logger = logging.getLogger(__name__)
+logger = get_logger(__name__)
 
 class TelegramJobClient:
-    """Telegram client for job scraping"""
+    """Telegram client for job scraping with automatic phone code handling"""
     
     def __init__(self):
         if config.auth_method == 'bot':
@@ -33,7 +35,7 @@ class TelegramJobClient:
         self.target_entities = []
         
     async def start(self):
-        """Start the Telegram client"""
+        """Start the Telegram client with automatic phone code handling"""
         try:
             if config.auth_method == 'bot':
                 # Bot authentication
@@ -41,23 +43,47 @@ class TelegramJobClient:
                 self.me = await self.client.get_me()
                 logger.info(f'Bot logged in as {self.me.first_name} (@{self.me.username})')
             else:
-                # User authentication
-                await self.client.start(phone=config.phone_number)
+                # User authentication with automatic phone code
+                await self.client.start(
+                    phone=config.phone_number,
+                    code_callback=self._get_phone_code,
+                    password_callback=self._get_2fa_password
+                )
                 self.me = await self.client.get_me()
                 logger.info(f'Logged in as {self.me.first_name} (@{self.me.username})')
             
             # Get target entities
             await self._load_target_entities()
             
-        except SessionPasswordNeededError:
-            logger.error('Two-factor authentication is enabled. Please disable it temporarily or use a different account.')
-            raise
         except PhoneCodeInvalidError:
-            logger.error('Invalid phone code. Please check your code and try again.')
+            logger.error('Invalid phone code provided. Check TELEGRAM_PHONE_CODE environment variable.')
+            raise
+        except SessionPasswordNeededError:
+            logger.error('Two-factor authentication is enabled. Please disable it temporarily or provide the password via TELEGRAM_2FA_PASSWORD environment variable.')
             raise
         except Exception as e:
             logger.error(f'Failed to start Telegram client: {e}')
             raise
+    
+    def _get_phone_code(self) -> str:
+        """Get phone code from environment variable"""
+        phone_code = os.getenv('TELEGRAM_PHONE_CODE')
+        if phone_code:
+            logger.info(f'Using phone code from environment variable: {phone_code}')
+            return phone_code
+        else:
+            logger.error('TELEGRAM_PHONE_CODE environment variable not set')
+            raise ValueError('TELEGRAM_PHONE_CODE environment variable is required for automatic authentication')
+    
+    def _get_2fa_password(self) -> str:
+        """Get 2FA password from environment variable"""
+        password = os.getenv('TELEGRAM_2FA_PASSWORD')
+        if password:
+            logger.info('Using 2FA password from environment variable')
+            return password
+        else:
+            logger.error('TELEGRAM_2FA_PASSWORD environment variable not set')
+            raise ValueError('TELEGRAM_2FA_PASSWORD environment variable is required for 2FA authentication')
     
     async def _load_target_entities(self):
         """Load target channels/groups"""

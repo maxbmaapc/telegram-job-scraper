@@ -46,8 +46,7 @@ class TelegramJobClient:
                 # User authentication with automatic phone code
                 await self.client.start(
                     phone=config.phone_number,
-                    code_callback=self._get_phone_code,
-                    password_callback=self._get_2fa_password
+                    code_callback=self._get_phone_code
                 )
                 self.me = await self.client.get_me()
                 logger.info(f'Logged in as {self.me.first_name} (@{self.me.username})')
@@ -60,7 +59,17 @@ class TelegramJobClient:
             raise
         except SessionPasswordNeededError:
             logger.error('Two-factor authentication is enabled. Please disable it temporarily or provide the password via TELEGRAM_2FA_PASSWORD environment variable.')
-            raise
+            # Try to handle 2FA automatically
+            try:
+                password = self._get_2fa_password()
+                await self.client.sign_in(password=password)
+                self.me = await self.client.get_me()
+                logger.info(f'Logged in with 2FA as {self.me.first_name} (@{self.me.username})')
+                # Get target entities after successful 2FA
+                await self._load_target_entities()
+            except Exception as e:
+                logger.error(f'Failed to handle 2FA: {e}')
+                raise
         except Exception as e:
             logger.error(f'Failed to start Telegram client: {e}')
             raise

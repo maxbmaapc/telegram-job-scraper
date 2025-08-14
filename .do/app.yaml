@@ -11,10 +11,10 @@ services:
     http_port: 5000
     health_check:
       http_path: /health
-      initial_delay_seconds: 30
-      interval_seconds: 10
-      timeout_seconds: 5
-      unhealthy_threshold: 3
+      initial_delay_seconds: 60
+      interval_seconds: 30
+      timeout_seconds: 10
+      unhealthy_threshold: 5
       healthy_threshold: 2
     envs:
       - key: API_ID

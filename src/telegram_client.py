@@ -1,10 +1,11 @@
 import asyncio
 import logging
 import os
+import re
 from typing import List, Dict, Any, Optional
 from telethon import TelegramClient, events
 from telethon.tl.types import Channel, Chat, User
-from telethon.errors import SessionPasswordNeededError, PhoneCodeInvalidError
+from telethon.errors import SessionPasswordNeededError, PhoneCodeInvalidError, FloodWaitError
 from telethon.sessions import StringSession
 
 from .config import config
@@ -43,16 +44,72 @@ class TelegramJobClient:
                 self.me = await self.client.get_me()
                 logger.info(f'Bot logged in as {self.me.first_name} (@{self.me.username})')
             else:
-                # User authentication with automatic phone code
-                await self.client.start(
-                    phone=config.phone_number,
-                    code_callback=self._get_phone_code
-                )
-                self.me = await self.client.get_me()
-                logger.info(f'Logged in as {self.me.first_name} (@{self.me.username})')
+                # Check for existing session first
+                has_session = self._check_existing_session()
+                if has_session:
+                    logger.info('Attempting to use existing session file...')
+                
+                # Try to start with existing session first
+                try:
+                    await self.client.connect()
+                    if await self.client.is_user_authorized():
+                        self.me = await self.client.get_me()
+                        logger.info(f'Successfully authenticated with existing session as {self.me.first_name} (@{self.me.username})')
+                        await self._load_target_entities()
+                        return
+                    else:
+                        logger.info('Existing session expired, requesting new authentication...')
+                except Exception as e:
+                    logger.info(f'Could not use existing session: {e}')
+                
+                # Request new code and authenticate
+                await self._authenticate_with_new_code()
             
-            # Get target entities
+        except Exception as e:
+            logger.error(f'Failed to start Telegram client: {e}')
+            raise
+    
+    async def _authenticate_with_new_code(self):
+        """Authenticate by requesting a new code and handling the process automatically"""
+        try:
+            logger.info('Requesting new authentication code from Telegram...')
+            
+            # Request the code
+            await self.client.send_code_request(config.phone_number)
+            logger.info('Authentication code requested successfully')
+            
+            # Wait a moment for the code to arrive
+            logger.info('Waiting for code to arrive... (check your Telegram app/SMS)')
+            await asyncio.sleep(5)  # Give some time for the code to arrive
+            
+            # Get the code from environment variable
+            phone_code = self._get_phone_code()
+            logger.info(f'Using phone code: {phone_code}')
+            
+            # Sign in with the code
+            await self.client.sign_in(config.phone_number, phone_code)
+            logger.info('Successfully signed in with phone code')
+            
+            # Get user info
+            self.me = await self.client.get_me()
+            logger.info(f'Logged in as {self.me.first_name} (@{self.me.username})')
+            
+            # Load target entities
             await self._load_target_entities()
+            
+        except FloodWaitError as e:
+            wait_time = e.seconds
+            logger.info(f'Telegram requires waiting {wait_time} seconds. Waiting automatically...')
+            
+            # Wait for the cooldown to expire
+            for remaining in range(wait_time, 0, -1):
+                if remaining % 10 == 0:  # Log every 10 seconds
+                    logger.info(f'Waiting {remaining} seconds before retrying...')
+                await asyncio.sleep(1)
+            
+            logger.info('Cooldown expired, retrying authentication...')
+            # Retry the authentication
+            await self._authenticate_with_new_code()
             
         except PhoneCodeInvalidError:
             logger.error('Invalid phone code provided. Check TELEGRAM_PHONE_CODE environment variable.')
@@ -71,7 +128,7 @@ class TelegramJobClient:
                 logger.error(f'Failed to handle 2FA: {e}')
                 raise
         except Exception as e:
-            logger.error(f'Failed to start Telegram client: {e}')
+            logger.error(f'Failed to authenticate with new code: {e}')
             raise
     
     def _get_phone_code(self) -> str:
@@ -93,6 +150,17 @@ class TelegramJobClient:
         else:
             logger.error('TELEGRAM_2FA_PASSWORD environment variable not set')
             raise ValueError('TELEGRAM_2FA_PASSWORD environment variable is required for 2FA authentication')
+    
+    def _check_existing_session(self) -> bool:
+        """Check if an existing session file exists"""
+        session_file = f"{config.session_name}.session"
+        if os.path.exists(session_file):
+            file_size = os.path.getsize(session_file)
+            logger.info(f'Found existing session file: {session_file} ({file_size} bytes)')
+            return True
+        else:
+            logger.info(f'No existing session file found: {session_file}')
+            return False
     
     async def _load_target_entities(self):
         """Load target channels/groups"""

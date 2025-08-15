@@ -33,6 +33,23 @@ git add .
 git commit -m "Your development changes"
 ```
 
+### **To Sync Main Changes to Development:**
+
+```bash
+# 1. Switch to development branch
+git checkout development
+
+# 2. Merge main branch into development
+git merge main
+
+# 3. If conflict with session file, keep it in development
+git add telegram_job_scraper.session
+git commit -m "Merge main into development - keep session file"
+
+# 4. Push updated development branch
+git push origin development
+```
+
 ### **For Production Updates:**
 
 ```bash

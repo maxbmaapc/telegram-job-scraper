@@ -4,19 +4,18 @@ A robust, production-ready Python-based Telegram job scraper that monitors group
 
 ## 🚀 Features
 
-- 🔍 **Advanced Keyword Filtering**: Case-insensitive matching with exclusion keywords
-- 💰 **Enhanced Salary Extraction**: Multi-currency support (USD, EUR, GBP, RUB, UAH, KZT, etc.)
-- 📅 **Smart Date Filtering**: Configurable time windows with timezone support
-- 📱 **Telegram Integration**: Uses Telethon for full user access to Telegram
-- 💾 **Multiple Output Options**: Send to self, save to file, or store in database
-- 🏗️ **Modular Architecture**: Plugin-ready design for easy extensions
-- 🌐 **Modern Web UI**: Flask-based interface with real-time updates
-- 🐳 **Docker Support**: Containerized deployment with Docker Compose
-- 📊 **Comprehensive Logging**: Structured logging with error tracking
-- 🧪 **Extensive Testing**: High test coverage with automated testing
-- 🔒 **Security First**: Secure credential handling and SSL verification
-- ⚡ **Performance Optimized**: Async processing and batch operations
-- 📈 **Monitoring Ready**: Health checks and performance metrics
+- 🔍 **Smart Job Filtering**: Advanced keyword matching specifically for developer/engineer roles
+- 🚫 **Resume Detection**: Automatically excludes CVs and resumes with comprehensive keyword detection
+- 👨‍💻 **Junior Developer Focus**: Targets only "junior developer/engineer" positions (excludes general "junior" roles)
+- 🌐 **Web3 Support**: Includes web3/blockchain developer roles when combined with developer keywords
+- 📱 **Telegram UserBot**: Full access to public channels using Telethon
+- 🤖 **Auto-Authentication**: Automatic login code handling for deployment
+- ☁️ **DigitalOcean Ready**: Optimized for App Platform deployment with health checks
+- 💾 **Database Storage**: SQLite database with message deduplication
+- 📊 **Comprehensive Logging**: Detailed debug logs for filtering decisions
+- 🔒 **Secure Session Handling**: Development/production branch workflow for session files
+- ⚡ **Real-time Monitoring**: Continuous mode for live job notifications
+- 🧪 **Tested Filters**: Extensively tested filtering logic with fallback imports
 
 ## 🎯 Core Features
 
@@ -34,77 +33,73 @@ A robust, production-ready Python-based Telegram job scraper that monitors group
 telegram-job-scraper/
 ├── src/                     # Source code
 │   ├── main.py              # Entry point
-│   ├── config.py            # Enhanced configuration management
-│   ├── filters.py           # Advanced filtering logic
-│   ├── salary_extractor.py  # Enhanced salary extraction
+│   ├── config.py            # Configuration management with fallbacks
+│   ├── filters.py           # Advanced job filtering logic
+│   ├── salary_extractor.py  # Salary extraction utilities
 │   ├── logging_config.py    # Centralized logging configuration
-│   ├── telegram_client.py   # Telegram API client
+│   ├── telegram_client.py   # Telegram API client with auto-auth
 │   ├── output.py            # Output delivery methods
 │   ├── scheduler.py         # Job scheduling
 │   └── utils.py             # Utility functions
-├── tests/                   # Comprehensive test suite
-│   ├── test_filters.py      # Filter tests
-│   ├── test_salary_extractor.py  # Salary extraction tests
-│   └── conftest.py          # Test configuration
-├── web/                     # Modern web UI
-│   ├── app.py               # Flask application
-│   ├── templates/           # HTML templates
-│   └── static/              # Static assets
-├── scripts/                 # Deployment and utility scripts
-│   ├── deploy.sh            # Deployment automation
-│   └── cron_example.txt     # Cron job examples
-├── docker/                  # Docker configuration
-│   ├── Dockerfile           # Multi-stage Docker build
-│   └── docker-compose.yml   # Service orchestration
-├── docs/                    # Documentation
-├── requirements.txt         # Production dependencies
-├── requirements-dev.txt     # Development dependencies
-├── .pre-commit-config.yaml  # Code quality hooks
-├── .env.example            # Environment variables template
+├── tests/                   # Test suite
+│   ├── test_filters.py      # Filter logic tests
+│   └── test_salary_extractor.py  # Salary extraction tests
+├── web/                     # Web interface for health checks
+│   └── app.py               # Flask application with health endpoint
+├── .do/                     # DigitalOcean App Platform configuration
+│   └── app.yaml             # App platform specification
+├── logs/                    # Application logs
+├── config_template.txt      # Environment variables template
+├── requirements.txt         # Python dependencies
+├── Dockerfile.do           # DigitalOcean-optimized Dockerfile
+├── DEPLOYMENT.md           # DigitalOcean deployment guide
+├── DEVELOPMENT_WORKFLOW.md # Git workflow with session file handling
+├── .python-version         # Python version specification
 ├── .gitignore
-├── README.md
-├── CONTRIBUTING.md          # Contribution guidelines
-└── CHANGELOG.md            # Version history
+└── README.md
 ```
 
 ## 🚀 Quick Start
 
 ### Prerequisites
 
-- Python 3.8+ or Docker
+- Python 3.11+
 - Telegram account
 - Telegram API credentials (API ID and API Hash)
+- DigitalOcean account (for cloud deployment) or local environment
 
-### Option 1: Docker Deployment (Recommended)
+### Option 1: DigitalOcean App Platform (Recommended for Production)
 
-1. **Clone and configure**:
+1. **Fork and configure**:
 
    ```bash
-   git clone https://github.com/maxbmaapc/telegram-job-scraper.git
+   # Fork this repository on GitHub
+   # Clone your fork
+   git clone https://github.com/your-username/telegram-job-scraper.git
    cd telegram-job-scraper
-   cp config_template.txt .env
-   # Edit .env with your credentials
    ```
 
-2. **Deploy with Docker**:
+2. **Follow deployment guide**:
+   
+   See [DEPLOYMENT.md](DEPLOYMENT.md) for complete DigitalOcean setup instructions.
 
-   ```bash
-   chmod +x scripts/deploy.sh
-   ./scripts/deploy.sh deploy production
-   ```
-
-3. **Access the application**:
-   - Web UI: http://localhost:5000
-   - Logs: `./scripts/deploy.sh logs`
+3. **Key benefits**:
+   - ✅ Automatic deployments from GitHub
+   - ✅ Built-in health checks and monitoring  
+   - ✅ Secure environment variable management
+   - ✅ Auto-scaling and reliability
 
 ### Option 2: Local Development
+
+**Use the `development` branch for local work (includes session file):**
 
 1. **Clone and setup**:
 
    ```bash
    git clone https://github.com/maxbmaapc/telegram-job-scraper.git
    cd telegram-job-scraper
-   python -m venv venv
+   git checkout development  # Important: Use development branch
+   python3 -m venv venv
    source venv/bin/activate  # On Windows: venv\Scripts\activate
    ```
 
@@ -112,7 +107,6 @@ telegram-job-scraper/
 
    ```bash
    pip install -r requirements.txt
-   pip install -r requirements-dev.txt  # For development
    ```
 
 3. **Get Telegram API credentials**:
@@ -128,78 +122,42 @@ telegram-job-scraper/
    # Edit .env with your credentials and settings
    ```
 
-5. **Set up development tools**:
-
+5. **Run single scrape test**:
    ```bash
-   pre-commit install
+   python -m src.main --mode single
    ```
 
-6. **Run tests**:
+6. **Run continuous monitoring**:
    ```bash
-   pytest --cov=src
+   python -m src.main --mode continuous
    ```
+
+See [DEVELOPMENT_WORKFLOW.md](DEVELOPMENT_WORKFLOW.md) for the complete development workflow.
 
 ## ⚙️ Configuration
 
 ### Environment Variables
 
-Create a `.env` file with the following variables:
+The application uses environment variables for configuration. See [config_template.txt](config_template.txt) for a complete list of all available options with detailed explanations.
 
-```env
-# Telegram API Credentials
-API_ID=your_api_id_here
-API_HASH=your_api_hash_here
-PHONE_NUMBER=your_phone_number_here
-
-# Target Groups/Channels (comma-separated)
-TARGET_CHANNELS=channel1_id,channel2_id,channel3_id
-
-# Filter Keywords (comma-separated)
-FILTER_KEYWORDS=junior,remote,london,react,node.js,typescript,python,vue.js,ionic,aws,nosql,backend,frontend,full stack
-
-# Date Filter (in hours, 0 = no filter)
-DATE_FILTER_HOURS=24
-
-# Output Settings
-OUTPUT_METHOD=telegram  # Options: telegram, file, database
-SEND_TO_SELF=true  # Set to false to send to target account instead
-
-# Target Personal Account (where to send messages when SEND_TO_SELF=false)
-# TARGET_USER_ID=123456789  # Your personal Telegram user ID
-# TARGET_USERNAME=your_username  # Your personal Telegram username (without @)
-# TARGET_PHONE_NUMBER=+1234567890  # Your personal phone number
-
-# Database Settings (if using database output)
-DATABASE_PATH=jobs.db
-
-# Enhanced Logging
-LOG_LEVEL=INFO
-LOG_FILE=logs/telegram_scraper.log
-LOG_JSON=false  # Enable structured JSON logging
-LOG_COLORS=true  # Enable colored console output
-
-# Web UI Settings
-WEB_HOST=localhost
-WEB_PORT=5000
-
-# Performance Settings
-BATCH_SIZE=50  # Messages to process in batches
-MAX_RETRIES=3  # Max retries for failed operations
-
-# Rate Limiting (to avoid Telegram bans)
-MESSAGE_DELAY_MIN=2.0  # Minimum delay between messages
-MESSAGE_DELAY_MAX=3.0  # Maximum delay between messages
-
-# Scheduling (optional)
-SCHEDULE_INTERVAL_MINUTES=30
-SCHEDULE_START_TIME=09:00
-SCHEDULE_END_TIME=18:00
-SCHEDULE_DAYS_OF_WEEK=0,1,2,3,4,5,6  # 0=Sunday, 1=Monday, etc.
-SCHEDULE_MAX_RUNS_PER_DAY=0  # 0 = unlimited
-
-# Security
-ENABLE_SSL_VERIFICATION=true
+**Quick setup:**
+```bash
+cp config_template.txt .env
+# Edit .env with your specific values
 ```
+
+**Essential variables:**
+- `API_ID` & `API_HASH`: From https://my.telegram.org/apps
+- `PHONE_NUMBER`: Your Telegram phone number
+- `TARGET_CHANNELS`: Comma-separated channel IDs to monitor
+- `TARGET_USER_ID`: Where to send filtered job notifications
+- `FILTER_KEYWORDS`: Keywords to match in job posts
+
+**For DigitalOcean deployment:**
+- `TELEGRAM_PHONE_CODE`: Login code for automatic authentication
+- `TELEGRAM_2FA_PASSWORD`: Two-factor auth password (if enabled)
+
+See [config_template.txt](config_template.txt) for detailed descriptions and examples.
 
 ### Enhanced Features
 
@@ -248,34 +206,33 @@ python -c "from src.config import config; config.validate()"
 ### Basic Usage
 
 ```bash
-# Single scraping session
-python src/main.py --mode single --limit 100
+# Single scraping session (test mode)
+python -m src.main --mode single
 
-# Continuous monitoring
-python src/main.py --mode continuous
-
-# Scheduled scraping
-python src/main.py --mode scheduled
+# Continuous monitoring (production mode)
+python -m src.main --mode continuous
 ```
 
-### Docker Deployment
+### DigitalOcean Deployment
+
+1. **Follow [DEPLOYMENT.md](DEPLOYMENT.md)** for complete setup
+2. **Monitor via DigitalOcean dashboard** - logs, metrics, health checks
+3. **Auto-deploys** from GitHub main branch (when enabled)
+
+### Local Development
 
 ```bash
-# Deploy to production
-./scripts/deploy.sh deploy production
+# Switch to development branch (has session file)
+git checkout development
 
-# Deploy for development
-./scripts/deploy.sh deploy development
+# Test the filters and scraping
+python -m src.main --mode single
 
-# Check status
-./scripts/deploy.sh status
-
-# View logs
-./scripts/deploy.sh logs telegram-scraper
-
-# Stop services
-./scripts/deploy.sh stop
+# Run continuous monitoring locally  
+python -m src.main --mode continuous
 ```
+
+See [DEVELOPMENT_WORKFLOW.md](DEVELOPMENT_WORKFLOW.md) for Git workflow with session files.
 
 ### Development
 
@@ -297,13 +254,16 @@ flake8 src/ tests/
 pre-commit run --all-files
 ```
 
-### Web UI
+### Health Check Endpoint
+
+The Flask web server provides a health check endpoint for monitoring:
 
 ```bash
-# Start web interface
-python web/app.py
+# Start web interface (for health checks)
+python -m web.app
 
-# Access at http://localhost:5000
+# Health check endpoint
+curl http://localhost:8080/health
 ```
 
 ## 🔍 Advanced Filtering
@@ -334,38 +294,35 @@ python web/app.py
 - **Experience requirement parsing** (years, levels)
 - **Senior position exclusion** with customizable keywords
 
-## 🐳 Deployment
+## 🚀 Deployment
 
-### Docker Deployment
+### DigitalOcean App Platform (Recommended)
 
-The application is containerized for easy deployment:
+This application is optimized for DigitalOcean App Platform deployment:
 
-```bash
-# Build and run with Docker Compose
-docker-compose up -d
+**Key Features:**
+- ✅ **Automatic deployments** from GitHub
+- ✅ **Built-in health checks** and monitoring
+- ✅ **Secure environment variable** management
+- ✅ **Auto-scaling** and high availability
+- ✅ **Integrated logging** and metrics
 
-# Production deployment
-docker-compose -f docker-compose.yml --profile production up -d
-
-# Development deployment
-docker-compose -f docker-compose.yml --profile development up -d
-```
+**Setup:** Follow the complete guide in [DEPLOYMENT.md](DEPLOYMENT.md)
 
 ### Production Considerations
 
-- **Resource limits**: Configured memory and CPU limits
-- **Health checks**: Automatic health monitoring
-- **Log rotation**: Automatic log file management
-- **Backup strategies**: Database and configuration backups
-- **Security**: Non-root user, SSL verification, secure secrets
+- **Health monitoring**: `/health` endpoint for uptime checks
+- **Automatic restarts**: App Platform handles failures gracefully
+- **Environment variables**: Secure credential management
+- **Git-based deployment**: Clean separation of dev/prod branches
+- **Session file security**: Development branch workflow
 
 ### Monitoring and Observability
 
-- **Structured logging** with JSON format support
-- **Error tracking** with context and stack traces
-- **Performance metrics** with timing information
-- **Health endpoints** for monitoring systems
-- **Prometheus metrics** (optional)
+- **Detailed logging**: All filtering decisions and errors logged
+- **Health endpoint**: HTTP health checks for monitoring
+- **DigitalOcean metrics**: Built-in performance monitoring
+- **Real-time alerts**: Via DigitalOcean dashboard
 
 ## 🧪 Testing
 

@@ -80,12 +80,12 @@ telegram-job-scraper/
    ```
 
 2. **Follow deployment guide**:
-   
+
    See [DEPLOYMENT.md](DEPLOYMENT.md) for complete DigitalOcean setup instructions.
 
 3. **Key benefits**:
    - ✅ Automatic deployments from GitHub
-   - ✅ Built-in health checks and monitoring  
+   - ✅ Built-in health checks and monitoring
    - ✅ Secure environment variable management
    - ✅ Auto-scaling and reliability
 
@@ -123,6 +123,7 @@ telegram-job-scraper/
    ```
 
 5. **Run single scrape test**:
+
    ```bash
    python -m src.main --mode single
    ```
@@ -141,12 +142,14 @@ See [DEVELOPMENT_WORKFLOW.md](DEVELOPMENT_WORKFLOW.md) for the complete developm
 The application uses environment variables for configuration. See [config_template.txt](config_template.txt) for a complete list of all available options with detailed explanations.
 
 **Quick setup:**
+
 ```bash
 cp config_template.txt .env
 # Edit .env with your specific values
 ```
 
 **Essential variables:**
+
 - `API_ID` & `API_HASH`: From https://my.telegram.org/apps
 - `PHONE_NUMBER`: Your Telegram phone number
 - `TARGET_CHANNELS`: Comma-separated channel IDs to monitor
@@ -154,6 +157,7 @@ cp config_template.txt .env
 - `FILTER_KEYWORDS`: Keywords to match in job posts
 
 **For DigitalOcean deployment:**
+
 - `TELEGRAM_PHONE_CODE`: Login code for automatic authentication
 - `TELEGRAM_2FA_PASSWORD`: Two-factor auth password (if enabled)
 
@@ -228,7 +232,7 @@ git checkout development
 # Test the filters and scraping
 python -m src.main --mode single
 
-# Run continuous monitoring locally  
+# Run continuous monitoring locally
 python -m src.main --mode continuous
 ```
 
@@ -301,6 +305,7 @@ curl http://localhost:8080/health
 This application is optimized for DigitalOcean App Platform deployment:
 
 **Key Features:**
+
 - ✅ **Automatic deployments** from GitHub
 - ✅ **Built-in health checks** and monitoring
 - ✅ **Secure environment variable** management

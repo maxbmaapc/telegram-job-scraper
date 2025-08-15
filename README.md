@@ -13,7 +13,7 @@ A robust, production-ready Python-based Telegram job scraper that monitors group
 - ☁️ **DigitalOcean Ready**: Optimized for App Platform deployment with health checks
 - 💾 **Database Storage**: SQLite database with message deduplication
 - 📊 **Comprehensive Logging**: Detailed debug logs for filtering decisions
-- 🔒 **Secure Session Handling**: Development/production branch workflow for session files
+- 🔒 **Zero Sensitive Data**: No session files in repository, environment-based auth only
 - ⚡ **Real-time Monitoring**: Continuous mode for live job notifications
 - 🧪 **Tested Filters**: Extensively tested filtering logic with fallback imports
 
@@ -91,7 +91,7 @@ telegram-job-scraper/
 
 ### Option 2: Local Development
 
-**Use the `development` branch for local work (includes session file):**
+**Use the `development` branch for local work:**
 
 1. **Clone and setup**:
 

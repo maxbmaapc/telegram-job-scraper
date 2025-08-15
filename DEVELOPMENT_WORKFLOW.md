@@ -12,7 +12,7 @@
 ### **Development Branch (`development`)**
 
 - 🛠️ **Local development code**
-- ✅ **Contains session files** for local testing
+- 🔒 **No session files** (fully secure)
 - 🧪 **Used for testing and development**
 - ⚠️ **Never deployed to production**
 
@@ -24,11 +24,15 @@
 # 1. Switch to development branch
 git checkout development
 
-# 2. Make your changes and test locally
+# 2. Set up environment variables (first time only)
+cp config_template.txt .env
+# Edit .env with your credentials
+
+# 3. Make your changes and test locally
 python -m src.main --mode single
 python -m src.main --mode continuous
 
-# 3. Commit changes (including session file if needed)
+# 4. Commit changes
 git add .
 git commit -m "Your development changes"
 ```
@@ -42,9 +46,9 @@ git checkout development
 # 2. Merge main branch into development
 git merge main
 
-# 3. If conflict with session file, keep it in development
-git add telegram_job_scraper.session
-git commit -m "Merge main into development - keep session file"
+# 3. If any conflicts occur, resolve them
+git add .
+git commit -m "Merge main into development"
 
 # 4. Push updated development branch
 git push origin development
@@ -56,30 +60,23 @@ git push origin development
 # 1. Switch to main branch
 git checkout main
 
-# 2. Merge development branch (but exclude session file)
+# 2. Merge development branch
 git merge development
 
-# 3. If session file got merged, remove it
-git rm --cached telegram_job_scraper.session
-git commit -m "Remove session file from main"
-
-# 4. Push to trigger deployment
+# 3. Push to trigger deployment
 git push origin main
 ```
 
-### **Alternative Secure Merge:**
+### **Alternative Cherry-pick Merge:**
 
 ```bash
-# 1. From development branch, create patch without session file
+# 1. From development branch, note commit hashes you want
 git checkout development
-git diff main..development -- . ':!telegram_job_scraper.session' > changes.patch
+git log --oneline
 
-# 2. Switch to main and apply patch
+# 2. Switch to main and cherry-pick specific commits
 git checkout main
-git apply changes.patch
-git add .
-git commit -m "Apply development changes"
-rm changes.patch
+git cherry-pick <commit-hash-1> <commit-hash-2>
 
 # 3. Push to production
 git push origin main
@@ -87,28 +84,31 @@ git push origin main
 
 ## 🛡️ Security Benefits
 
-- ✅ **Session file never exposed** in public main branch
-- ✅ **Local development works** with session file
+- ✅ **No session files** in any branch (100% secure)
+- ✅ **Local development** uses environment variables only
 - ✅ **Production deployment** uses environment-based auth
-- ✅ **GitHub repo is secure** for public viewing
+- ✅ **GitHub repo is completely secure** for public viewing
+- ✅ **Zero sensitive data** committed to repository
 
 ## ⚙️ Current Setup
 
-- **Local development**: Use `development` branch with session file
+- **Local development**: Use `development` branch with environment variables
 - **Production deployment**: DigitalOcean uses `main` branch with environment variables
-- **Auto-deploy**: Currently **DISABLED** for safety
+- **Auto-deploy**: Enable/disable as needed in DigitalOcean dashboard
 
-## 🔧 DigitalOcean Configuration
+## 🔧 Authentication Configuration
 
-The production app uses these environment variables instead of session file:
+Both local and production environments use these environment variables:
 
-- `TELEGRAM_PHONE_CODE`: Login code from Telegram
+- `API_ID` & `API_HASH`: From https://my.telegram.org/apps
+- `PHONE_NUMBER`: Your Telegram phone number
+- `TELEGRAM_PHONE_CODE`: Login code from Telegram (for deployment)
 - `TELEGRAM_2FA_PASSWORD`: 2FA password if enabled
 - `SESSION_NAME`: Name for session file (generated automatically)
 
 ## 📝 Notes
 
 - Always test in `development` branch first
-- Keep `main` branch clean and secure
-- Session file is automatically ignored in `main` via `.gitignore`
-- Production relies on environment variables for authentication
+- Both branches are completely secure (no session files)
+- All authentication uses environment variables
+- Repository is safe for public viewing and collaboration
